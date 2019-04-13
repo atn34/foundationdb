@@ -137,8 +137,9 @@ then
                     fi
                     log_file="${log_dir}/${curr_name}_${curr_test}.log"
                     err_file="${log_dir}/${curr_name}_${curr_test}.err"
-                    docker_id=$( docker run -d -v "${fdb_source}:/foundationdb"\
+                    docker_id=$( docker run --privileged -d -v "${fdb_source}:/foundationdb"\
                         -v "${fdb_build}:/build"\
+                        -v /sys/fs/cgroup:/sys/fs/cgroup\
                         ${curr_name} /sbin/init )
                     echo "Starting Test ${curr_name}/${curr_test} Docker-ID: ${docker_id}"
                     {
