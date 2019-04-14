@@ -2508,10 +2508,17 @@ extern "C" void criticalError(int exitCode, const char *type, const char *messag
 
 extern void flushTraceFileVoid();
 
+#ifdef USE_COVERAGE
+extern "C" void __gcov_flush();
+#endif
+
 extern "C" void flushAndExit(int exitCode) {
 	flushTraceFileVoid();
 	fflush(stdout);
 	closeTraceFile();
+#ifdef USE_COVERAGE
+	__gcov_flush();
+#endif
 #ifdef _WIN32
 	// This function is documented as being asynchronous, but we suspect it might actually be synchronous in the
 	// case that it is passed a handle to the current process. If not, then there may be cases where we escalate
@@ -2712,6 +2719,9 @@ void crashHandler(int sig) {
 	fprintf(stderr, "SIGNAL: %s (%d)\n", strsignal(sig), sig);
 	fprintf(stderr, "Trace: %s\n", backtrace.c_str());
 
+#ifdef USE_COVERAGE
+	__gcov_flush();
+#endif
 	_exit(128 + sig);
 #else
 	// No crash handler for other platforms!

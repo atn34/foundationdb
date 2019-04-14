@@ -6,6 +6,7 @@ set(WITH_UNDODB OFF CACHE BOOL "Use rr or undodb")
 set(USE_ASAN OFF CACHE BOOL "Compile with address sanitizer")
 set(FDB_RELEASE OFF CACHE BOOL "This is a building of a final release")
 set(USE_LD "LD" CACHE STRING "The linker to use for building: can be LD (system default, default choice), GOLD, or LLD")
+set(USE_COVERAGE OFF CACHE BOOL "Compile with coverage")
 
 if(USE_GPERFTOOLS)
   find_package(Gperftools REQUIRED)
@@ -159,6 +160,33 @@ else()
       set(CMAKE_C_ARCHIVE_FINISH   true)
       set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> qcs <TARGET> <LINK_FLAGS> <OBJECTS>")
       set(CMAKE_CXX_ARCHIVE_FINISH   true)
+    endif()
+  endif()
+endif()
+
+if(USE_COVERAGE)
+  if(NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    message(WARNING "USE_COVERAGE only works with gcc and clang")
+  else()
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/gcovr)
+    add_compile_options(--coverage -DUSE_COVERAGE)
+    add_link_options(--coverage)
+
+    find_program (gcovr gcovr)
+    if (gcovr)
+      message (STATUS "Adding target 'gcovr' to generate '${CMAKE_BINARY_DIR}/gcovr/index.html'")
+      add_custom_target (gcovr
+        COMMAND ${gcovr}
+        --exclude ${CMAKE_BINARY_DIR}
+        --html
+        --html-details
+        --object-directory ${CMAKE_BINARY_DIR}
+        --output ${CMAKE_BINARY_DIR}/gcovr/index.html
+        --root ${CMAKE_SOURCE_DIR}
+        --sort-percentage
+        )
+    else()
+      message(WARNING "Could not find gcovr. No html report will be available.")
     endif()
   endif()
 endif()
