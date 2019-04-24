@@ -251,12 +251,17 @@ struct ConnectPacket {
 	template <class Ar>
 	void serialize(Ar& ar) {
 		serializer(ar, connectPacketLength);
-		if(connectPacketLength > sizeof(ConnectPacket) - sizeof(connectPacketLength)) {
+		if (connectPacketLength > sizeof(ConnectPacket) - sizeof(connectPacketLength) ||
+		    connectPacketLength < sizeof(protocolVersion) + sizeof(canonicalRemotePort)) {
 			ASSERT(!g_network->isSimulated());
 			throw serialization_failed();
 		}
 
-		serializer(ar, protocolVersion, canonicalRemotePort, connectionId, canonicalRemoteIp4);
+		serializer(ar, protocolVersion, canonicalRemotePort);
+		if (!ar.isDeserializing || connectPacketLength >= sizeof(protocolVersion) + sizeof(canonicalRemotePort) +
+		                                                      sizeof(connectionId) + sizeof(canonicalRemoteIp4)) {
+			serializer(ar, connectionId, canonicalRemoteIp4);
+		}
 		if (ar.isDeserializing && ar.protocolVersion() < 0x0FDB00B061030001LL) {
 			flags = 0;
 		} else {
