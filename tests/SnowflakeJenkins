@@ -157,7 +157,6 @@ if (!cancelled) {
                 onlyIfSuccessful: false
         }
     }
-}
 stage("Report") {
     node('test-dynamic-slave') {
         cleanWs()
@@ -196,4 +195,5 @@ stage("Report") {
             optional: true,
             onlyIfSuccessful: false
     }
+}
 }
