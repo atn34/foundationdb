@@ -178,6 +178,11 @@ if(WITH_DOCUMENTATION)
   add_subdirectory(documentation)
 endif()
 
+add_executable(repro repro.cc)
+target_link_libraries(repro flow)
+target_compile_options(repro PRIVATE -fsanitize=undefined)
+target_link_options(repro PRIVATE -fsanitize=undefined)
+
 if(WIN32)
   add_subdirectory(packaging/msi)
 else()
