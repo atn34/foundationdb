@@ -253,7 +253,7 @@ void uncancellable(Future<T> what, Promise<T> result)
 
 // Waits for a future to complete and cannot be cancelled
 ACTOR template <class T>
-ALLOW_DISCARD Future<T> uncancellable(Future<T> what) {
+[[flow_allow_discard]] Future<T> uncancellable(Future<T> what) {
 	Promise<T> resultPromise;
 	Future<T> result = resultPromise.getFuture();
 

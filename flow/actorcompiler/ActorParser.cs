@@ -496,14 +496,6 @@ namespace actorcompiler
                 toks = range(uncancellableKeyword.Position + 1, toks.End);
             }
 
-            bool allowDiscard = false;
-            var allowDiscardKeyword = toks.First(NonWhitespace);
-            if (allowDiscardKeyword.Value == "ALLOW_DISCARD")
-            {
-                allowDiscard = true;
-                toks = range(allowDiscardKeyword.Position + 1, toks.End);
-            }
-
             // Find the parameter list
             TokenRange paramRange = toks.Last(NonWhitespace)
                 .Assert("Unexpected tokens after actor parameter list.", 
@@ -546,7 +538,7 @@ namespace actorcompiler
                     throw new Error(actor.SourceLine, "Unrecognized tokens preceding parameter list in actor declaration");
                 }
             }
-            if (errorMessagePolicy.ActorsNoDiscardByDefault() && !allowDiscard) {
+            if (errorMessagePolicy.ActorsNoDiscardByDefault() && !actor.attributes.Contains("[[flow_allow_discard]]")) {
                 if (actor.IsCancellable() && actor.returnType != null)
                 {
                     actor.attributes.Add("[[nodiscard]]");

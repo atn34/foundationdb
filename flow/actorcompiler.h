@@ -30,7 +30,6 @@ template<typename T> struct FutureStream;
 #define DESCR
 #define state
 #define UNCANCELLABLE
-#define ALLOW_DISCARD
 #define choose if(1)
 #define when(...) for(__VA_ARGS__;;)
 template <class T> T wait( const Future<T>& );
