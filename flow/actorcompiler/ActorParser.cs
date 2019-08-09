@@ -492,7 +492,7 @@ namespace actorcompiler
             var uncancellableKeyword = toks.First(NonWhitespace);
             if (uncancellableKeyword.Value == "UNCANCELLABLE")
             {
-                actor.IsUncancellable = true;
+                actor.SetUncancellable();
                 toks = range(uncancellableKeyword.Position + 1, toks.End);
             }
 
@@ -547,7 +547,7 @@ namespace actorcompiler
                 }
             }
             if (errorMessagePolicy.ActorsNoDiscardByDefault() && !allowDiscard) {
-                if (actor.IsCancellable && actor.returnType != null)
+                if (actor.IsCancellable() && actor.returnType != null)
                 {
                     actor.attributes.Add("[[nodiscard]]");
                 }
