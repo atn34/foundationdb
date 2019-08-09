@@ -428,6 +428,8 @@ ACTOR Future<Void> periodically(PromiseStream<Void> ps, int seconds) {
 In this example, the `PromiseStream `is actually a way for the actor to return data from some
 operation that it ongoing.
 
+By default it is a compiler error to discard the result of a cancellable actor. If you don't think this is appropriate for your actor you can add the keyword `ALLOW_DISCARD` before the return type.
+
 ## “gotchas”
 
 ### Actor compiler

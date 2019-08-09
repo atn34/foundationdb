@@ -25,6 +25,7 @@
 #undef DESCR
 #undef state
 #undef UNCANCELLABLE
+#undef ALLOW_DISCARD
 #undef choose
 #undef when
 #endif
