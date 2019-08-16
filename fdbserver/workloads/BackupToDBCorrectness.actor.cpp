@@ -360,7 +360,7 @@ struct BackupToDBCorrectnessWorkload : TestWorkload {
 					printf("%.6f %-10s Wait #%4d for %lld tasks to end\n", now(), randomID.toString().c_str(), waitCycles, (long long) taskCount);
 
 					wait(delay(5.0));
-					tr->commit();
+					(void)tr->commit(); // TODO is this necessary
 					tr = Reference<ReadYourWritesTransaction>(new ReadYourWritesTransaction(cx));
 					int64_t _taskCount = wait( backupAgent->getTaskCount(tr) );
 					taskCount = _taskCount;

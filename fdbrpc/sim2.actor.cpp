@@ -989,7 +989,7 @@ public:
 
 	// Implement ISimulator interface
 	virtual void run() {
-		_run(this);
+		(void)_run(this);
 	}
 	virtual ProcessInfo* newProcess(const char* name, IPAddress ip, uint16_t port, uint16_t listenPerProcess,
 	                                LocalityData locality, ProcessClass startingClass, const char* dataFolder,

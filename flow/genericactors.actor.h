@@ -251,10 +251,9 @@ void uncancellable(Future<T> what, Promise<T> result)
 	}
 }
 
-//Waits for a future to complete and cannot be cancelled
-ACTOR template<class T>
-Future<T> uncancellable(Future<T> what)
-{
+// Waits for a future to complete and cannot be cancelled
+ACTOR template <class T>
+[[flow_allow_discard]] Future<T> uncancellable(Future<T> what) {
 	Promise<T> resultPromise;
 	Future<T> result = resultPromise.getFuture();
 
@@ -1227,7 +1226,7 @@ struct FlowLock : NonCopyable, public ReferenceCounted<FlowLock> {
 	// number of permits, and release() makes the caller no longer a holder of the lock. release() only runs waiting take()rs
 	// after the caller wait()s
 
-	struct Releaser : NonCopyable {
+	struct [[nodiscard]] Releaser : NonCopyable {
 		FlowLock* lock;
 		int remaining;
 		Releaser() : lock(0), remaining(0) {}
