@@ -125,9 +125,9 @@ static int TRACE_LOG_MAX_PREOPEN_BUFFER = 1000000;
 
 struct TraceLog {
 	Reference<ITraceLogFormatter> formatter;
+	Reference<ITraceLogWriter> logWriter;
 
 private:
-	Reference<ITraceLogWriter> logWriter;
 	std::vector<TraceEventFields> eventBuffer;
 	int loggedLength;
 	int bufferLength;
@@ -295,7 +295,11 @@ public:
 		this->localAddress = na;
 
 		basename = format("%s/%s.%s.%s", directory.c_str(), processName.c_str(), timestamp.c_str(), deterministicRandom()->randomAlphaNumeric(6).c_str());
-		logWriter = Reference<ITraceLogWriter>(new FileTraceLogWriter(directory, processName, basename, formatter->getExtension(), maxLogsSize, [this](){ barriers->triggerAll(); }));
+		if (!logWriter) {
+			logWriter = Reference<ITraceLogWriter>(new FileTraceLogWriter(directory, processName, basename,
+			                                                              formatter->getExtension(), maxLogsSize,
+			                                                              [this]() { barriers->triggerAll(); }));
+		}
 
 		if ( g_network->isSimulated() )
 			writer = Reference<IThreadPool>(new DummyThreadPool());
@@ -565,21 +569,47 @@ TraceEventFields LatestEventCache::getLatestError() {
 static TraceLog g_traceLog;
 
 namespace {
+
+struct NoopLogWriter : ITraceLogWriter, ReferenceCounted<NoopLogWriter> {
+	void open() override {}
+	void roll() override {}
+	void close() override {}
+	void write(const std::string&) override {}
+	void sync() override {}
+	void addref() override { ReferenceCounted<NoopLogWriter>::addref(); }
+	void delref() override { ReferenceCounted<NoopLogWriter>::delref(); }
+};
+
+struct NoopTraceFormatter : ITraceLogFormatter, ReferenceCounted<NoopTraceFormatter> {
+	const char* getExtension() override { return "txt"; }
+	const char* getHeader() override { return ""; }
+	const char* getFooter() override { return ""; }
+	std::string formatEvent(const TraceEventFields&) override { return ""; }
+	void addref() override { ReferenceCounted<NoopTraceFormatter>::addref(); }
+	void delref() override { ReferenceCounted<NoopTraceFormatter>::delref(); }
+};
+
 template <bool validate>
 bool traceFormatImpl(std::string& format) {
 	std::transform(format.begin(), format.end(), format.begin(), ::tolower);
 	if (format == "xml") {
-		if (!validate) {
+		if constexpr (!validate) {
 			g_traceLog.formatter = Reference<ITraceLogFormatter>(new XmlTraceLogFormatter());
 		}
 		return true;
 	} else if (format == "json") {
-		if (!validate) {
+		if constexpr (!validate) {
 			g_traceLog.formatter = Reference<ITraceLogFormatter>(new JsonTraceLogFormatter());
 		}
 		return true;
+	} else if (format == "no_traces") {
+		if constexpr (!validate) {
+			g_traceLog.logWriter = Reference<ITraceLogWriter>(new NoopLogWriter());
+			g_traceLog.formatter = Reference<ITraceLogFormatter>(new NoopTraceFormatter());
+		}
+		return true;
 	} else {
-		if (!validate) {
+		if constexpr (!validate) {
 			g_traceLog.formatter = Reference<ITraceLogFormatter>(new XmlTraceLogFormatter());
 		}
 		return false;
