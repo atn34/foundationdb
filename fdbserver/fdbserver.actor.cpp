@@ -1504,7 +1504,7 @@ private:
 };
 } // namespace
 
-int main(int argc, char* argv[]) {
+int fdbserver_main(int argc, char* argv[]) {
 	try {
 		platformInit();
 		initSignalSafeUnwind();
@@ -2031,4 +2031,5 @@ int main(int argc, char* argv[]) {
 	static_assert( LBLocalityData<MasterProxyInterface>::Present, "Master proxy interface should be load balanced" );
 	static_assert( LBLocalityData<TLogInterface>::Present, "TLog interface should be load balanced" );
 	static_assert( !LBLocalityData<MasterInterface>::Present, "Master interface should not be load balanced" );
+	return FDB_EXIT_SUCCESS;
 }

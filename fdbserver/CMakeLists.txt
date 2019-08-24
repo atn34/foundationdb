@@ -198,7 +198,11 @@ endif()
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/workloads)
 
-add_flow_target(EXECUTABLE NAME fdbserver SRCS ${FDBSERVER_SRCS})
+if(NOT USE_LIBFUZZER)
+  set(FDBSERVER_SRCS ${FDBSERVER_SRCS} fdbserver_main.cpp)
+endif()
+
+add_flow_target(EXECUTABLE NAME fdbserver SRCS fdbserver_main.cpp ${FDBSERVER_SRCS})
 target_include_directories(fdbserver PRIVATE
   ${CMAKE_SOURCE_DIR}/bindings/c
   ${CMAKE_BINARY_DIR}/bindings/c
