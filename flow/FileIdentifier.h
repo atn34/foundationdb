@@ -73,6 +73,42 @@ struct ComposedIdentifierExternal<T, B, true> {
 	static constexpr FileIdentifier value = ComposedIdentifier<T, B>::file_identifier;
 };
 
+template <class T>
+constexpr FileIdentifier scalar_file_identifier() {
+	if constexpr (std::is_integral_v<T>) {
+		if constexpr (std::is_signed_v<T>) {
+			switch (sizeof(T)) {
+			case 1:
+				return 9;
+			case 2:
+				return 7;
+			case 4:
+				return 1;
+			case 8:
+				return 3;
+			}
+		} else {
+			switch (sizeof(T)) {
+			case 1:
+				return 10;
+			case 2:
+				return 8;
+			case 4:
+				return 2;
+			case 8:
+				return 4;
+			}
+		}
+	} else if constexpr (std::is_floating_point_v<T>) {
+		switch (sizeof(T)) {
+		case 4:
+			return 7266212;
+		case 8:
+			return 9348150;
+		}
+	}
+}
+
 template <>
 struct FileIdentifierFor<int> {
 	constexpr static FileIdentifier value = 1;
@@ -91,16 +127,6 @@ struct FileIdentifierFor<long> {
 template <>
 struct FileIdentifierFor<unsigned long> {
 	constexpr static FileIdentifier value = 4;
-};
-
-template <>
-struct FileIdentifierFor<long long> {
-	constexpr static FileIdentifier value = 5;
-};
-
-template <>
-struct FileIdentifierFor<unsigned long long> {
-	constexpr static FileIdentifier value = 6;
 };
 
 template <>
@@ -124,11 +150,6 @@ struct FileIdentifierFor<unsigned char> {
 };
 
 template <>
-struct FileIdentifierFor<bool> {
-	constexpr static FileIdentifier value = 11;
-};
-
-template <>
 struct FileIdentifierFor<float> {
 	constexpr static FileIdentifier value = 7266212;
 };
@@ -137,3 +158,14 @@ template <>
 struct FileIdentifierFor<double> {
 	constexpr static FileIdentifier value = 9348150;
 };
+
+static_assert(FileIdentifierFor<int>::value == scalar_file_identifier<int>());
+static_assert(FileIdentifierFor<unsigned>::value == scalar_file_identifier<unsigned>());
+static_assert(FileIdentifierFor<long>::value == scalar_file_identifier<long>());
+static_assert(FileIdentifierFor<unsigned long>::value == scalar_file_identifier<unsigned long>());
+static_assert(FileIdentifierFor<short>::value == scalar_file_identifier<short>());
+static_assert(FileIdentifierFor<unsigned short>::value == scalar_file_identifier<unsigned short>());
+static_assert(FileIdentifierFor<signed char>::value == scalar_file_identifier<signed char>());
+static_assert(FileIdentifierFor<unsigned char>::value == scalar_file_identifier<unsigned char>());
+static_assert(FileIdentifierFor<float>::value == scalar_file_identifier<float>());
+static_assert(FileIdentifierFor<double>::value == scalar_file_identifier<double>());
