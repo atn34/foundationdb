@@ -199,6 +199,101 @@ struct serializable_traits<ReplyPromise<T>> : std::true_type {
 	}
 };
 
+template <class T>
+class CachedSerialization {
+public:
+	constexpr static FileIdentifier file_identifier = FileIdentifierFor<T>::value;
+
+	enum class SerializeType { None, Binary, Object };
+
+	CachedSerialization() : cacheType(SerializeType::None) {}
+	explicit CachedSerialization(const T& data) : data(data), cacheType(SerializeType::None) {}
+
+	const T& read() const { return data; }
+
+	T& mutate() {
+		cacheType = SerializeType::None;
+		return data;
+	}
+
+	bool operator==(CachedSerialization<T> const& rhs) const { return data == rhs.data; }
+	bool operator!=(CachedSerialization<T> const& rhs) const { return !(*this == rhs); }
+	bool operator<(CachedSerialization<T> const& rhs) const { return data < rhs.data; }
+
+	template <class Ar>
+	void serialize(Ar& ar) {
+		if constexpr (is_fb_function<Ar>) {
+			// Only used for vtable collection. For actually serialization the LoadSaveHelper specialization below is
+			// used.
+			serializer(ar, data);
+		} else {
+			if (Ar::isDeserializing) {
+				cache = Standalone<StringRef>();
+				cacheType = SerializeType::None;
+				serializer(ar, data);
+			} else {
+				if (cacheType != SerializeType::Binary) {
+					cache = BinaryWriter::toValue(data, AssumeVersion(currentProtocolVersion));
+					cacheType = SerializeType::Binary;
+				}
+				ar.serializeBytes(const_cast<uint8_t*>(cache.begin()), cache.size());
+			}
+		}
+	}
+
+private:
+	Standalone<StringRef> getCache() const {
+		if (cacheType != SerializeType::Object) {
+			cache = ObjectWriter::toValue(ErrorOr<EnsureTable<T>>(data), AssumeVersion(currentProtocolVersion));
+			cacheType = SerializeType::Object;
+		}
+		return cache;
+	}
+	friend struct serializable_traits<ReplyPromise<CachedSerialization<T>>>;
+
+	T data;
+	mutable SerializeType cacheType;
+	mutable Standalone<StringRef> cache;
+};
+
+// This special case is needed - CachedSerialization<T> and T must be equivalent for serialization
+namespace detail {
+
+template <class T, class Context>
+struct LoadSaveHelper<CachedSerialization<T>, Context> : Context {
+	LoadSaveHelper(const Context& context) : Context(context), helper(context) {}
+
+	void load(CachedSerialization<T>& member, const uint8_t* current) { helper.load(member.mutate(), current); }
+
+	template <class Writer>
+	RelativeOffset save(const CachedSerialization<T>& member, Writer& writer, const VTableSet* vtables) {
+		return helper.save(member.read(), writer, vtables);
+	}
+
+private:
+	LoadSaveHelper<T, Context> helper;
+};
+
+} // namespace detail
+
+template <class T>
+struct serializable_traits<ReplyPromise<CachedSerialization<T>>> : std::true_type {
+	template <class Archiver>
+	static void serialize(Archiver& ar, ReplyPromise<CachedSerialization<T>>& p) {
+		if constexpr (Archiver::isDeserializing) {
+			UID token;
+			serializer(ar, token);
+			auto endpoint = FlowTransport::transport().loadedEndpoint(token);
+			p = ReplyPromise<CachedSerialization<T>>(endpoint);
+			networkSenderCached<T>(map(p.getFuture(), [](const CachedSerialization<T>& t) { return t.getCache(); }),
+			                       endpoint);
+		} else {
+			const auto& ep = p.getEndpoint().token;
+			serializer(ar, ep);
+		}
+	}
+};
+
 template <class Reply>
 ReplyPromise<Reply> const& getReplyPromise(ReplyPromise<Reply> const& p) { return p; }
 

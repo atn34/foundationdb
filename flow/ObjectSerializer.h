@@ -211,6 +211,15 @@ public:
 	}
 
 private:
+	friend class MakeCachedSerializeSource;
+
+	void serializeBytes(StringRef bytes) {
+		ASSERT(data == nullptr);
+		data = new (arena) uint8_t[bytes.size()];
+		size = bytes.size();
+		memcpy(data, bytes.begin(), bytes.size());
+	}
+
 	Arena arena;
 	std::function<uint8_t*(size_t)> customAllocator;
 	uint8_t* data = nullptr;

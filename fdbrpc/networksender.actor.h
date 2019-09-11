@@ -49,6 +49,34 @@ void networkSender(Future<T> input, Endpoint endpoint) {
 		}
 	}
 }
+
+struct MakeCachedSerializeSource : ISerializeSource {
+	StringRef bytes;
+	explicit MakeCachedSerializeSource(StringRef bytes) : bytes(bytes) {}
+	void serializePacketWriter(PacketWriter& w, bool useObjectSerializer) const override {
+		ASSERT(useObjectSerializer);
+		ASSERT(w.protocolVersion() == currentProtocolVersion);
+		memcpy(w.writeBytes(bytes.size()), bytes.begin(), bytes.size());
+	}
+	void serializeBinaryWriter(BinaryWriter& w) const override { ASSERT(false); }
+	void serializeObjectWriter(ObjectWriter& w) const override {
+		ASSERT(w.protocolVersion() == currentProtocolVersion);
+		w.serializeBytes(bytes);
+	}
+};
+
+ACTOR template <class T>
+void networkSenderCached(Future<Standalone<StringRef>> input, Endpoint endpoint) {
+	ASSERT(FLOW_KNOBS->USE_OBJECT_SERIALIZER);
+	try {
+		Standalone<StringRef> what = wait(input);
+		FlowTransport::transport().sendUnreliable(MakeCachedSerializeSource(what), endpoint, false);
+	} catch (Error& err) {
+		ASSERT(err.code() != error_code_actor_cancelled);
+		FlowTransport::transport().sendUnreliable(SerializeSource<ErrorOr<EnsureTable<T>>>(err), endpoint, false);
+	}
+}
+
 #include "flow/unactorcompiler.h"
 
 #endif
