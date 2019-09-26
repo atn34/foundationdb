@@ -77,6 +77,18 @@ set(FLOW_SRCS
   stacktrace.h
   version.cpp)
 
+if (WITH_TLS)
+  set(FLOW_SRCS ${FLOW_SRCS} 
+    ${CMAKE_SOURCE_DIR}/FDBLibTLS/FDBLibTLSPlugin.cpp
+    ${CMAKE_SOURCE_DIR}/FDBLibTLS/FDBLibTLSPlugin.h
+    ${CMAKE_SOURCE_DIR}/FDBLibTLS/FDBLibTLSPolicy.cpp
+    ${CMAKE_SOURCE_DIR}/FDBLibTLS/FDBLibTLSPolicy.h
+    ${CMAKE_SOURCE_DIR}/FDBLibTLS/FDBLibTLSSession.cpp
+    ${CMAKE_SOURCE_DIR}/FDBLibTLS/FDBLibTLSSession.h
+    ${CMAKE_SOURCE_DIR}/FDBLibTLS/FDBLibTLSVerify.cpp
+    ${CMAKE_SOURCE_DIR}/FDBLibTLS/FDBLibTLSVerify.h)
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hgVersion.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/hgVersion.h)
 
 add_flow_target(STATIC_LIBRARY NAME flow SRCS ${FLOW_SRCS})
@@ -91,10 +103,10 @@ target_link_libraries(flow PUBLIC boost_target Threads::Threads ${CMAKE_DL_LIBS}
 if(USE_VALGRIND)
   target_link_libraries(flow PUBLIC Valgrind)
 endif()
-if(NOT WITH_TLS)
-  target_compile_definitions(flow PUBLIC TLS_DISABLED)
+if(WITH_TLS)
+  target_link_libraries(flow PUBLIC LibreSSL boost_target)
 else()
-  target_link_libraries(flow PUBLIC FDBLibTLS)
+  target_compile_definitions(flow PUBLIC TLS_DISABLED)
 endif()
 
 if(APPLE)
