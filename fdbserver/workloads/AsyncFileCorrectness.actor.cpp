@@ -298,7 +298,7 @@ struct AsyncFileCorrectnessWorkload : public AsyncFileWorkload
 
 			if(info.operation == READ || info.operation == WRITE)
 			{
-				int64_t maxOffset;
+				int64_t maxOffset = 0;
 
 				//Reads should not exceed the extent of written data
 				if(info.operation == READ)

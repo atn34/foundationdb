@@ -561,7 +561,6 @@ public:
 	virtual void unwait() {
 		delFutureRef();
 	}
-	virtual void fire() { ASSERT(false); }
 };
 
 template <class T>
@@ -644,7 +643,6 @@ struct NotifiedQueue : private SingleCallback<T>, FastAllocated<NotifiedQueue<T>
 	virtual void unwait() {
 		delFutureRef();
 	}
-	virtual void fire() { ASSERT(false); }
 };
 
 

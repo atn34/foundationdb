@@ -237,6 +237,7 @@ public:
 
 			int cumulativeDensity = 0;
 			int random = deterministicRandom()->randomInt(0, totalDensity);
+			ASSERT(pdf.size() > 1);
 			for(int i = 0; i < pdf.size() - 1; i++) {
 				if(cumulativeDensity + pdf[i] <= random && random < cumulativeDensity + pdf[i] + pdf[i + 1]) {
 					operation = (OperationType)i;
