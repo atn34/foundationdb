@@ -401,10 +401,10 @@ private:
 	}
 public:
 	struct Finger{
+		Node* x;
+		Node* alreadyChecked;
 		Node *finger[MaxLevels]; // valid for levels >= level
 		int level;
-		Node* x;
-		Node *alreadyChecked;
 		StringRef value;
 
 		Finger() : level(MaxLevels), x(NULL), alreadyChecked(NULL) {}
@@ -1211,7 +1211,7 @@ void ConflictBatch::checkReadConflictRanges() {
 	if (!combinedReadConflictRanges.size()) 
 		return;
 
-	if (PARALLEL_THREAD_COUNT) {
+	if constexpr (PARALLEL_THREAD_COUNT) {
 		Event done[PARALLEL_THREAD_COUNT?PARALLEL_THREAD_COUNT:1];
 		for(int t=0; t<PARALLEL_THREAD_COUNT; t++) {
 			cs->worker_nextAction[t] = action( [&,t] {
