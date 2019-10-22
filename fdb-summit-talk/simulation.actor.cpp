@@ -16,8 +16,45 @@ struct Simulator {
 	virtual ~Simulator() = default;
 };
 
-struct FairRandomSim : Simulator {
-	explicit FairRandomSim(int seed) : rand_(seed) { max_buggified_delay = 0.2 * random01(); }
+struct Random {
+	virtual double random01() = 0;
+	virtual int32_t randomInt(int32_t min, int32_t max_plus_one) = 0;
+	virtual ~Random() = default;
+};
+
+struct FuzzRandom : Random {
+	std::mt19937 rand_; // If you run out of bytes
+	std::string_view bytes;
+	double random01() override {
+		if (bytes.size() >= 4) {
+			double result = static_cast<double>(*reinterpret_cast<const uint32_t*>(bytes.begin())) /
+			                static_cast<double>(std::numeric_limits<uint32_t>::max());
+			bytes = bytes.substr(4);
+			return result;
+		}
+		return std::uniform_real_distribution<double>{ 0, 1 }(rand_);
+	}
+	int32_t randomInt(int32_t min, int32_t max_plus_one) override {
+		int32_t result = min + random01() * (max_plus_one - min);
+		return std::min(std::max(result, min), max_plus_one - 1);
+	}
+	~FuzzRandom() override = default;
+};
+
+struct FairRandom : Random {
+	explicit FairRandom(int seed) : rand_(seed) {}
+	double random01() override { return std::uniform_real_distribution{ 0.0, 1.0 }(rand_); }
+	int randomInt(int min, int maxPlusOne) override {
+		return std::uniform_int_distribution{ min, maxPlusOne - 1 }(rand_);
+	}
+	~FairRandom() override = default;
+
+private:
+	std::mt19937 rand_;
+};
+
+struct RandomSim : Simulator {
+	explicit RandomSim(Random* rand) : rand_(rand) { max_buggified_delay = 0.2 * random01(); }
 	Future<Void> delay(double seconds) override {
 		if (random01() < 0.25) {
 			double delta = max_buggified_delay * pow(random01(), 1000.0);
@@ -32,10 +69,8 @@ struct FairRandomSim : Simulator {
 		return task.getFuture();
 	}
 	double now() override { return now_; }
-	int randomInt(int min, int maxPlusOne) override {
-		return std::uniform_int_distribution{ min, maxPlusOne - 1 }(rand_);
-	}
-	double random01() override { return std::uniform_real_distribution{ 0.0, 1.0 }(rand_); }
+	int randomInt(int min, int maxPlusOne) override { return rand_->randomInt(min, maxPlusOne); }
+	double random01() override { return rand_->random01(); }
 	void run() override {
 		while (running && !tasks_.empty()) {
 			Task task = std::move(tasks_.front());
@@ -46,7 +81,7 @@ struct FairRandomSim : Simulator {
 		}
 	}
 	void stop() override { running = false; }
-	~FairRandomSim() override = default;
+	~RandomSim() override = default;
 
 private:
 	struct Task {
@@ -59,7 +94,7 @@ private:
 	};
 	double now_ = 0;
 	std::vector<Task> tasks_;
-	std::mt19937 rand_;
+	Random* rand_; // Not owned
 	int stable = 0;
 	bool running = true;
 	double max_buggified_delay;
@@ -136,15 +171,34 @@ ACTOR Future<Void> stopAfterSeconds(Simulator* sim, double seconds) {
 	return Void();
 }
 
+void runSimulation(Simulator* sim) {
+	ExampleService service{ sim };
+	std::vector<Future<Void>> futures;
+	futures.push_back(clients(sim, &service));
+	futures.push_back(stopAfterSeconds(sim, 100.0));
+	sim->run();
+}
+
+#ifdef USE_LIBFUZZER
+
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, size_t Size) {
+	FuzzRandom rand;
+	rand.bytes = { reinterpret_cast<const char*>(Data), Size };
+	RandomSim sim{ &rand };
+	runSimulation(&sim);
+	return 0;
+}
+
+#else
+
 int main() {
 	int seed = 0;
 	for (;;) {
 		printf("Trying seed %d\n", seed);
-		FairRandomSim sim{ seed++ };
-		ExampleService service{ &sim };
-		std::vector<Future<Void>> futures;
-		futures.push_back(clients(&sim, &service));
-		futures.push_back(stopAfterSeconds(&sim, 100.0));
-		sim.run();
+		FairRandom rand{ seed++ };
+		RandomSim sim{ &rand };
+		runSimulation(&sim);
 	}
 }
+
+#endif
