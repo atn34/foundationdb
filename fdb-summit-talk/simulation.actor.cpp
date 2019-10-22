@@ -156,13 +156,11 @@ ACTOR Future<Void> client(Simulator* sim, ExampleService* service) {
 
 ACTOR Future<Void> clients(Simulator* sim, ExampleService* service) {
 	state ActorCollection actors(/*returnWhenEmptied*/ false);
-	state double lastTime = sim->now();
-	loop {
-		choose {
-			when(wait(poisson(sim, &lastTime, 5))) { actors.add(client(sim, service)); }
-			when(wait(actors.getResult())) { throw internal_error(); }
-		}
+	for (int i = 0; i < 5; ++i) {
+		actors.add(client(sim, service));
 	}
+	wait(actors.getResult());
+	throw internal_error();
 }
 
 ACTOR Future<Void> stopAfterSeconds(Simulator* sim, double seconds) {
