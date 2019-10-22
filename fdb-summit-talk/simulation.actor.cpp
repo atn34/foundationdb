@@ -20,7 +20,11 @@ struct FairRandomSim : Simulator {
 	explicit FairRandomSim(int seed) : rand_(seed) { max_buggified_delay = 0.2 * random01(); }
 	Future<Void> delay(double seconds) override {
 		if (random01() < 0.25) {
-			seconds += max_buggified_delay * pow(random01(), 1000.0);
+			double delta = max_buggified_delay * pow(random01(), 1000.0);
+			/* if (delta > 0) { */
+			/* 	printf("delay delta: %.16f\n", delta); */
+			/* } */
+			seconds += delta;
 		}
 		Promise<Void> task;
 		tasks_.push_back({ task, now_ + seconds, stable++ });
@@ -85,7 +89,7 @@ struct ExampleService {
 		}
 	}
 
-	constexpr static int kSize = 100;
+	constexpr static int kSize = 1000;
 
 private:
 	ACTOR static Future<Void> swap_(ExampleService* self, int i, int j) {
@@ -104,6 +108,7 @@ private:
 ACTOR Future<Void> client(Simulator* sim, ExampleService* service) {
 	state double lastTime = sim->now();
 	loop {
+		wait(poisson(sim, &lastTime, 5));
 		if (sim->randomInt(0, 100) == 0) {
 			wait(service->checkInvariant());
 		} else {
@@ -111,7 +116,6 @@ ACTOR Future<Void> client(Simulator* sim, ExampleService* service) {
 			int j = sim->randomInt(0, ExampleService::kSize);
 			wait(service->swap(i, j));
 		}
-		wait(poisson(sim, &lastTime, 5));
 	}
 }
 
