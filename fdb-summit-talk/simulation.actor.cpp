@@ -22,8 +22,9 @@ struct Random {
 	virtual ~Random() = default;
 };
 
+struct EndSimulation {};
+
 struct FuzzRandom : Random {
-	std::mt19937 rand_; // If you run out of bytes
 	std::string_view bytes;
 	double random01() override {
 		if (bytes.size() >= 4) {
@@ -32,7 +33,7 @@ struct FuzzRandom : Random {
 			bytes = bytes.substr(4);
 			return result;
 		}
-		return std::uniform_real_distribution<double>{ 0, 1 }(rand_);
+		throw EndSimulation{};
 	}
 	int32_t randomInt(int32_t min, int32_t max_plus_one) override {
 		int32_t result = min + random01() * (max_plus_one - min);
@@ -57,11 +58,7 @@ struct RandomSim : Simulator {
 	explicit RandomSim(Random* rand) : rand_(rand) { max_buggified_delay = 0.2 * random01(); }
 	Future<Void> delay(double seconds) override {
 		if (random01() < 0.25) {
-			double delta = max_buggified_delay * pow(random01(), 1000.0);
-			/* if (delta > 0) { */
-			/* 	printf("delay delta: %.16f\n", delta); */
-			/* } */
-			seconds += delta;
+			seconds += max_buggified_delay * pow(random01(), 1000.0);
 		}
 		Promise<Void> task;
 		tasks_.push_back({ task, now_ + seconds, stable++ });
@@ -130,7 +127,9 @@ private:
 	ACTOR static Future<Void> swap_(ExampleService* self, int i, int j) {
 		state int x = self->elements[i];
 		state int y = self->elements[j];
+		printf("read(%d, %d)\n", i, j);
 		wait(self->sim->delay(0)); // This wait is the bug!
+		printf("write(%d, %d)\n", i, j);
 		self->elements[i] = y;
 		self->elements[j] = x;
 		return Void();
@@ -169,12 +168,16 @@ ACTOR Future<Void> stopAfterSeconds(Simulator* sim, double seconds) {
 	return Void();
 }
 
-void runSimulation(Simulator* sim) {
-	ExampleService service{ sim };
-	std::vector<Future<Void>> futures;
-	futures.push_back(clients(sim, &service));
-	futures.push_back(stopAfterSeconds(sim, 100.0));
-	sim->run();
+void runSimulation(Random* random) {
+	try {
+		RandomSim sim{ random };
+		ExampleService service{ &sim };
+		std::vector<Future<Void>> futures;
+		futures.push_back(clients(&sim, &service));
+		futures.push_back(stopAfterSeconds(&sim, 100.0));
+		sim.run();
+	} catch (EndSimulation&) {
+	}
 }
 
 #ifdef USE_LIBFUZZER
@@ -182,8 +185,7 @@ void runSimulation(Simulator* sim) {
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, size_t Size) {
 	FuzzRandom rand;
 	rand.bytes = { reinterpret_cast<const char*>(Data), Size };
-	RandomSim sim{ &rand };
-	runSimulation(&sim);
+	runSimulation(&rand);
 	return 0;
 }
 
@@ -194,8 +196,7 @@ int main() {
 	for (;;) {
 		printf("Trying seed %d\n", seed);
 		FairRandom rand{ seed++ };
-		RandomSim sim{ &rand };
-		runSimulation(&sim);
+		runSimulation(&rand);
 	}
 }
 
