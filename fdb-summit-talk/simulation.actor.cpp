@@ -127,9 +127,7 @@ private:
 	ACTOR static Future<Void> swap_(ExampleService* self, int i, int j) {
 		state int x = self->elements[i];
 		state int y = self->elements[j];
-		printf("read(%d, %d)\n", i, j);
 		wait(self->sim->delay(0)); // This wait is the bug!
-		printf("write(%d, %d)\n", i, j);
 		self->elements[i] = y;
 		self->elements[j] = x;
 		return Void();
