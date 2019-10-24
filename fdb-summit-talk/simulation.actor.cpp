@@ -25,6 +25,7 @@ struct Random {
 struct EndSimulation {};
 
 struct FuzzRandom : Random {
+	std::string owned_bytes;
 	std::string_view bytes;
 	double random01() override {
 		if (bytes.size() >= 4) {

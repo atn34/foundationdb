@@ -81,97 +81,140 @@
 #include "flow/actorcompiler.h"  // This must be the last #include.
 
 enum {
-	OPT_CONNFILE, OPT_SEEDCONNFILE, OPT_SEEDCONNSTRING, OPT_ROLE, OPT_LISTEN, OPT_PUBLICADDR, OPT_DATAFOLDER, OPT_LOGFOLDER, OPT_PARENTPID, OPT_NEWCONSOLE, 
-	OPT_NOBOX, OPT_TESTFILE, OPT_RESTARTING, OPT_RESTORING, OPT_RANDOMSEED, OPT_KEY, OPT_MEMLIMIT, OPT_STORAGEMEMLIMIT, OPT_CACHEMEMLIMIT, OPT_MACHINEID, 
-	OPT_DCID, OPT_MACHINE_CLASS, OPT_BUGGIFY, OPT_VERSION, OPT_CRASHONERROR, OPT_HELP, OPT_NETWORKIMPL, OPT_NOBUFSTDOUT, OPT_BUFSTDOUTERR, OPT_TRACECLOCK, 
-	OPT_NUMTESTERS, OPT_DEVHELP, OPT_ROLLSIZE, OPT_MAXLOGS, OPT_MAXLOGSSIZE, OPT_KNOB, OPT_TESTSERVERS, OPT_TEST_ON_SERVERS, OPT_METRICSCONNFILE, 
-	OPT_METRICSPREFIX, OPT_LOGGROUP, OPT_LOCALITY, OPT_IO_TRUST_SECONDS, OPT_IO_TRUST_WARN_ONLY, OPT_FILESYSTEM, OPT_PROFILER_RSS_SIZE, OPT_KVFILE, 
-	OPT_TRACE_FORMAT, OPT_WHITELIST_BINPATH
+	OPT_CONNFILE,
+	OPT_SEEDCONNFILE,
+	OPT_SEEDCONNSTRING,
+	OPT_ROLE,
+	OPT_LISTEN,
+	OPT_PUBLICADDR,
+	OPT_DATAFOLDER,
+	OPT_LOGFOLDER,
+	OPT_PARENTPID,
+	OPT_NEWCONSOLE,
+	OPT_NOBOX,
+	OPT_TESTFILE,
+	OPT_RESTARTING,
+	OPT_RESTORING,
+	OPT_RANDOMSEED,
+	OPT_KEY,
+	OPT_MEMLIMIT,
+	OPT_STORAGEMEMLIMIT,
+	OPT_CACHEMEMLIMIT,
+	OPT_MACHINEID,
+	OPT_DCID,
+	OPT_MACHINE_CLASS,
+	OPT_BUGGIFY,
+	OPT_VERSION,
+	OPT_CRASHONERROR,
+	OPT_HELP,
+	OPT_NETWORKIMPL,
+	OPT_NOBUFSTDOUT,
+	OPT_BUFSTDOUTERR,
+	OPT_TRACECLOCK,
+	OPT_NUMTESTERS,
+	OPT_DEVHELP,
+	OPT_ROLLSIZE,
+	OPT_MAXLOGS,
+	OPT_MAXLOGSSIZE,
+	OPT_KNOB,
+	OPT_TESTSERVERS,
+	OPT_TEST_ON_SERVERS,
+	OPT_METRICSCONNFILE,
+	OPT_METRICSPREFIX,
+	OPT_LOGGROUP,
+	OPT_LOCALITY,
+	OPT_IO_TRUST_SECONDS,
+	OPT_IO_TRUST_WARN_ONLY,
+	OPT_FILESYSTEM,
+	OPT_PROFILER_RSS_SIZE,
+	OPT_KVFILE,
+	OPT_TRACE_FORMAT,
+	OPT_WHITELIST_BINPATH,
+	OPT_RANDOMFUZZ
 };
 
-CSimpleOpt::SOption g_rgOptions[] = {
-	{ OPT_CONNFILE,              "-C",                          SO_REQ_SEP },
-	{ OPT_CONNFILE,              "--cluster_file",              SO_REQ_SEP },
-	{ OPT_SEEDCONNFILE,          "--seed_cluster_file",         SO_REQ_SEP },
-	{ OPT_SEEDCONNSTRING,        "--seed_connection_string",    SO_REQ_SEP },
-	{ OPT_ROLE,                  "-r",                          SO_REQ_SEP },
-	{ OPT_ROLE,                  "--role",                      SO_REQ_SEP },
-	{ OPT_PUBLICADDR,            "-p",                          SO_REQ_SEP },
-	{ OPT_PUBLICADDR,            "--public_address",            SO_REQ_SEP },
-	{ OPT_LISTEN,                "-l",                          SO_REQ_SEP },
-	{ OPT_LISTEN,                "--listen_address",            SO_REQ_SEP },
+CSimpleOpt::SOption g_rgOptions[] = { { OPT_CONNFILE, "-C", SO_REQ_SEP },
+	                                  { OPT_CONNFILE, "--cluster_file", SO_REQ_SEP },
+	                                  { OPT_SEEDCONNFILE, "--seed_cluster_file", SO_REQ_SEP },
+	                                  { OPT_SEEDCONNSTRING, "--seed_connection_string", SO_REQ_SEP },
+	                                  { OPT_ROLE, "-r", SO_REQ_SEP },
+	                                  { OPT_ROLE, "--role", SO_REQ_SEP },
+	                                  { OPT_PUBLICADDR, "-p", SO_REQ_SEP },
+	                                  { OPT_PUBLICADDR, "--public_address", SO_REQ_SEP },
+	                                  { OPT_LISTEN, "-l", SO_REQ_SEP },
+	                                  { OPT_LISTEN, "--listen_address", SO_REQ_SEP },
 #ifdef __linux__
-	{ OPT_FILESYSTEM,           "--data_filesystem",           SO_REQ_SEP },
-	{ OPT_PROFILER_RSS_SIZE,    "--rsssize",                   SO_REQ_SEP },
+	                                  { OPT_FILESYSTEM, "--data_filesystem", SO_REQ_SEP },
+	                                  { OPT_PROFILER_RSS_SIZE, "--rsssize", SO_REQ_SEP },
 #endif
-	{ OPT_DATAFOLDER,            "-d",                          SO_REQ_SEP },
-	{ OPT_DATAFOLDER,            "--datadir",                   SO_REQ_SEP },
-	{ OPT_LOGFOLDER,             "-L",                          SO_REQ_SEP },
-	{ OPT_LOGFOLDER,             "--logdir",                    SO_REQ_SEP },
-	{ OPT_ROLLSIZE,              "-Rs",                         SO_REQ_SEP },
-	{ OPT_ROLLSIZE,              "--logsize",                   SO_REQ_SEP },
-	{ OPT_MAXLOGS,               "--maxlogs",                   SO_REQ_SEP },
-	{ OPT_MAXLOGSSIZE,           "--maxlogssize",               SO_REQ_SEP },
-	{ OPT_LOGGROUP,              "--loggroup",                  SO_REQ_SEP },
-	{ OPT_PARENTPID,             "--parentpid",                 SO_REQ_SEP },
+	                                  { OPT_DATAFOLDER, "-d", SO_REQ_SEP },
+	                                  { OPT_DATAFOLDER, "--datadir", SO_REQ_SEP },
+	                                  { OPT_LOGFOLDER, "-L", SO_REQ_SEP },
+	                                  { OPT_LOGFOLDER, "--logdir", SO_REQ_SEP },
+	                                  { OPT_ROLLSIZE, "-Rs", SO_REQ_SEP },
+	                                  { OPT_ROLLSIZE, "--logsize", SO_REQ_SEP },
+	                                  { OPT_MAXLOGS, "--maxlogs", SO_REQ_SEP },
+	                                  { OPT_MAXLOGSSIZE, "--maxlogssize", SO_REQ_SEP },
+	                                  { OPT_LOGGROUP, "--loggroup", SO_REQ_SEP },
+	                                  { OPT_PARENTPID, "--parentpid", SO_REQ_SEP },
 #ifdef _WIN32
-	{ OPT_NEWCONSOLE,            "-n",                          SO_NONE },
-	{ OPT_NEWCONSOLE,            "--newconsole",                SO_NONE },
-	{ OPT_NOBOX,                 "-q",                          SO_NONE },
-	{ OPT_NOBOX,                 "--no_dialog",                 SO_NONE },
+	                                  { OPT_NEWCONSOLE, "-n", SO_NONE },
+	                                  { OPT_NEWCONSOLE, "--newconsole", SO_NONE },
+	                                  { OPT_NOBOX, "-q", SO_NONE },
+	                                  { OPT_NOBOX, "--no_dialog", SO_NONE },
 #endif
-	{ OPT_KVFILE,                "--kvfile",                    SO_REQ_SEP },
-	{ OPT_TESTFILE,              "-f",                          SO_REQ_SEP },
-	{ OPT_TESTFILE,              "--testfile",                  SO_REQ_SEP },
-	{ OPT_RESTARTING,            "-R",                          SO_NONE },
-	{ OPT_RESTARTING,            "--restarting",                SO_NONE },
-	{ OPT_RANDOMSEED,            "-s",                          SO_REQ_SEP },
-	{ OPT_RANDOMSEED,            "--seed",                      SO_REQ_SEP },
-	{ OPT_KEY,                   "-k",                          SO_REQ_SEP },
-	{ OPT_KEY,                   "--key",                       SO_REQ_SEP },
-	{ OPT_MEMLIMIT,              "-m",                          SO_REQ_SEP },
-	{ OPT_MEMLIMIT,              "--memory",                    SO_REQ_SEP },
-	{ OPT_STORAGEMEMLIMIT,       "-M",                          SO_REQ_SEP },
-	{ OPT_STORAGEMEMLIMIT,       "--storage_memory",            SO_REQ_SEP },
-	{ OPT_CACHEMEMLIMIT,         "--cache_memory",              SO_REQ_SEP },
-	{ OPT_MACHINEID,             "-i",                          SO_REQ_SEP },
-	{ OPT_MACHINEID,             "--machine_id",                SO_REQ_SEP },
-	{ OPT_DCID,                  "-a",                          SO_REQ_SEP },
-	{ OPT_DCID,                  "--datacenter_id",             SO_REQ_SEP },
-	{ OPT_MACHINE_CLASS,         "-c",                          SO_REQ_SEP },
-	{ OPT_MACHINE_CLASS,         "--class",                     SO_REQ_SEP },
-	{ OPT_BUGGIFY,               "-b",                          SO_REQ_SEP },
-	{ OPT_BUGGIFY,               "--buggify",                   SO_REQ_SEP },
-	{ OPT_VERSION,               "-v",                          SO_NONE },
-	{ OPT_VERSION,               "--version",                   SO_NONE },
-	{ OPT_CRASHONERROR,          "--crash",                     SO_NONE },
-	{ OPT_NETWORKIMPL,           "-N",                          SO_REQ_SEP },
-	{ OPT_NETWORKIMPL,           "--network",                   SO_REQ_SEP },
-	{ OPT_NOBUFSTDOUT,           "--unbufferedout",             SO_NONE },
-	{ OPT_BUFSTDOUTERR,          "--bufferedout",               SO_NONE },
-	{ OPT_TRACECLOCK,            "--traceclock",                SO_REQ_SEP },
-	{ OPT_NUMTESTERS,            "--num_testers",               SO_REQ_SEP },
-	{ OPT_HELP,                  "-?",                          SO_NONE },
-	{ OPT_HELP,                  "-h",                          SO_NONE },
-	{ OPT_HELP,                  "--help",                      SO_NONE },
-	{ OPT_DEVHELP,               "--dev-help",                  SO_NONE },
-	{ OPT_KNOB,                  "--knob_",                     SO_REQ_SEP },
-	{ OPT_LOCALITY,              "--locality_",                 SO_REQ_SEP },
-	{ OPT_TESTSERVERS,           "--testservers",               SO_REQ_SEP },
-	{ OPT_TEST_ON_SERVERS,       "--testonservers",             SO_NONE },
-	{ OPT_METRICSCONNFILE,       "--metrics_cluster",           SO_REQ_SEP },
-	{ OPT_METRICSPREFIX,         "--metrics_prefix",            SO_REQ_SEP },
-	{ OPT_IO_TRUST_SECONDS,      "--io_trust_seconds",          SO_REQ_SEP },
-	{ OPT_IO_TRUST_WARN_ONLY,    "--io_trust_warn_only",        SO_NONE },
-	{ OPT_TRACE_FORMAT      ,    "--trace_format",              SO_REQ_SEP },
-	{ OPT_WHITELIST_BINPATH,     "--whitelist_binpath",         SO_REQ_SEP },
+	                                  { OPT_KVFILE, "--kvfile", SO_REQ_SEP },
+	                                  { OPT_TESTFILE, "-f", SO_REQ_SEP },
+	                                  { OPT_TESTFILE, "--testfile", SO_REQ_SEP },
+	                                  { OPT_RESTARTING, "-R", SO_NONE },
+	                                  { OPT_RESTARTING, "--restarting", SO_NONE },
+	                                  { OPT_RANDOMSEED, "-s", SO_REQ_SEP },
+	                                  { OPT_RANDOMSEED, "--seed", SO_REQ_SEP },
+	                                  { OPT_RANDOMFUZZ, "--fuzz", SO_NONE },
+	                                  { OPT_KEY, "-k", SO_REQ_SEP },
+	                                  { OPT_KEY, "--key", SO_REQ_SEP },
+	                                  { OPT_MEMLIMIT, "-m", SO_REQ_SEP },
+	                                  { OPT_MEMLIMIT, "--memory", SO_REQ_SEP },
+	                                  { OPT_STORAGEMEMLIMIT, "-M", SO_REQ_SEP },
+	                                  { OPT_STORAGEMEMLIMIT, "--storage_memory", SO_REQ_SEP },
+	                                  { OPT_CACHEMEMLIMIT, "--cache_memory", SO_REQ_SEP },
+	                                  { OPT_MACHINEID, "-i", SO_REQ_SEP },
+	                                  { OPT_MACHINEID, "--machine_id", SO_REQ_SEP },
+	                                  { OPT_DCID, "-a", SO_REQ_SEP },
+	                                  { OPT_DCID, "--datacenter_id", SO_REQ_SEP },
+	                                  { OPT_MACHINE_CLASS, "-c", SO_REQ_SEP },
+	                                  { OPT_MACHINE_CLASS, "--class", SO_REQ_SEP },
+	                                  { OPT_BUGGIFY, "-b", SO_REQ_SEP },
+	                                  { OPT_BUGGIFY, "--buggify", SO_REQ_SEP },
+	                                  { OPT_VERSION, "-v", SO_NONE },
+	                                  { OPT_VERSION, "--version", SO_NONE },
+	                                  { OPT_CRASHONERROR, "--crash", SO_NONE },
+	                                  { OPT_NETWORKIMPL, "-N", SO_REQ_SEP },
+	                                  { OPT_NETWORKIMPL, "--network", SO_REQ_SEP },
+	                                  { OPT_NOBUFSTDOUT, "--unbufferedout", SO_NONE },
+	                                  { OPT_BUFSTDOUTERR, "--bufferedout", SO_NONE },
+	                                  { OPT_TRACECLOCK, "--traceclock", SO_REQ_SEP },
+	                                  { OPT_NUMTESTERS, "--num_testers", SO_REQ_SEP },
+	                                  { OPT_HELP, "-?", SO_NONE },
+	                                  { OPT_HELP, "-h", SO_NONE },
+	                                  { OPT_HELP, "--help", SO_NONE },
+	                                  { OPT_DEVHELP, "--dev-help", SO_NONE },
+	                                  { OPT_KNOB, "--knob_", SO_REQ_SEP },
+	                                  { OPT_LOCALITY, "--locality_", SO_REQ_SEP },
+	                                  { OPT_TESTSERVERS, "--testservers", SO_REQ_SEP },
+	                                  { OPT_TEST_ON_SERVERS, "--testonservers", SO_NONE },
+	                                  { OPT_METRICSCONNFILE, "--metrics_cluster", SO_REQ_SEP },
+	                                  { OPT_METRICSPREFIX, "--metrics_prefix", SO_REQ_SEP },
+	                                  { OPT_IO_TRUST_SECONDS, "--io_trust_seconds", SO_REQ_SEP },
+	                                  { OPT_IO_TRUST_WARN_ONLY, "--io_trust_warn_only", SO_NONE },
+	                                  { OPT_TRACE_FORMAT, "--trace_format", SO_REQ_SEP },
+	                                  { OPT_WHITELIST_BINPATH, "--whitelist_binpath", SO_REQ_SEP },
 
 #ifndef TLS_DISABLED
-	TLS_OPTION_FLAGS
+	                                  TLS_OPTION_FLAGS
 #endif
 
-	SO_END_OF_OPTIONS
-};
+	                                      SO_END_OF_OPTIONS };
 
 GlobalCounters g_counters;
 
@@ -914,6 +957,7 @@ struct CLIOptions {
 
 	Role role = FDBD;
 	uint32_t randomSeed = platform::getRandomSeed();
+	bool randomFuzz = false;
 
 	const char* testFile = "tests/default.txt";
 	std::string kvFile;
@@ -1249,6 +1293,9 @@ private:
 				}
 				break;
 			}
+			case OPT_RANDOMFUZZ:
+				randomFuzz = true;
+				break;
 			case OPT_MACHINEID: {
 				zoneId = std::string(args.OptionArg());
 				break;
@@ -1498,7 +1545,62 @@ private:
 		if (!localities.isPresent(LocalityData::keyDcId) && dcId.present()) localities.set(LocalityData::keyDcId, dcId);
 	}
 };
+
+struct FuzzRandom : IRandom, ReferenceCounted<FuzzRandom> {
+	std::string owned_bytes;
+	std::string_view bytes;
+	template <class T>
+	T reinterpret() {
+		if (bytes.size() >= sizeof(T)) {
+			T result;
+			memcpy(&result, &bytes[0], sizeof(T));
+			bytes = bytes.substr(sizeof(T));
+			return result;
+		}
+		flushAndExit(FDB_EXIT_SUCCESS);
+		throw internal_error();
+	}
+
+	double random01() override {
+		return static_cast<double>(reinterpret<uint32_t>()) / static_cast<double>(std::numeric_limits<uint32_t>::max());
+	}
+	int randomInt(int min, int max_plus_one) override {
+		int result = min + random01() * (max_plus_one - min);
+		return std::min(std::max(result, min), max_plus_one - 1);
+	}
+	int64_t randomInt64(int64_t min, int64_t maxPlusOne) override {
+		int64_t result = min + random01() * (maxPlusOne - min);
+		return std::min(std::max(result, min), maxPlusOne - 1);
+	}
+	uint32_t randomUInt32() override { return reinterpret<uint32_t>(); }
+	UID randomUniqueID() override { return reinterpret<UID>(); }
+	char randomAlphaNumeric() override {
+		static const char alphanum[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+		return alphanum[randomInt(0, 62)];
+	}
+	std::string randomAlphaNumeric(int length) override {
+		std::string s;
+		s.reserve(length);
+		for (int i = 0; i < length; i++) s += randomAlphaNumeric();
+		return s;
+	}
+	uint32_t randomSkewedUInt32(uint32_t min, uint32_t maxPlusOne) override { return randomUInt32(); }
+	uint64_t peek() const override {
+		if (bytes.size() >= sizeof(uint64_t)) {
+			uint64_t result;
+			memcpy(&result, &bytes[0], sizeof(uint64_t));
+			return result;
+		}
+		flushAndExit(FDB_EXIT_SUCCESS);
+		throw internal_error();
+	}
+	void addref() override { ReferenceCounted<FuzzRandom>::addref(); }
+	void delref() override { ReferenceCounted<FuzzRandom>::delref(); }
+};
+
 } // namespace
+
+extern thread_local Reference<IRandom> seededRandom;
 
 int main(int argc, char* argv[]) {
 	try {
@@ -1529,7 +1631,15 @@ int main(int argc, char* argv[]) {
 		if (opts.zoneId.present())
 			printf("ZoneId set to %s, dcId to %s\n", printable(opts.zoneId).c_str(), printable(opts.dcId).c_str());
 
-		setThreadLocalDeterministicRandomSeed(opts.randomSeed);
+		if (opts.randomFuzz) {
+			auto* fuzzRandom = new FuzzRandom();
+			std::string content((std::istreambuf_iterator<char>(std::cin)), std::istreambuf_iterator<char>());
+			fuzzRandom->owned_bytes = std::move(content);
+			fuzzRandom->bytes = fuzzRandom->owned_bytes;
+			seededRandom = Reference<IRandom>(fuzzRandom);
+		} else {
+			setThreadLocalDeterministicRandomSeed(opts.randomSeed);
+		}
 
 		enableBuggify(opts.buggifyEnabled, BuggifyType::General);
 
