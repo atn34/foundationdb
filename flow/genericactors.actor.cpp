@@ -83,3 +83,35 @@ ACTOR Future<bool> quorumEqualsTrue( std::vector<Future<bool>> futures, int requ
 		}
 	}
 }
+
+// Returns if the future returns true, otherwise waits forever.
+ACTOR Future<Void> returnIfTrue(Future<bool> f) {
+	bool b = wait(f);
+	if (b) {
+		return Void();
+	}
+	wait(Never());
+	throw internal_error();
+}
+
+ACTOR Future<bool> shortCircuitAny(std::vector<Future<bool>> f) {
+	std::vector<Future<Void>> sc;
+	for (Future<bool> fut : f) {
+		sc.push_back(returnIfTrue(fut));
+	}
+
+	choose {
+		when(wait(waitForAll(f))) {
+			// Handle a possible race condition? If the _last_ term to
+			// be evaluated triggers the waitForAll before bubbling
+			// out of the returnIfTrue quorum
+			for (auto fut : f) {
+				if (fut.get()) {
+					return true;
+				}
+			}
+			return false;
+		}
+		when(wait(waitForAny(sc))) { return true; }
+	}
+}
