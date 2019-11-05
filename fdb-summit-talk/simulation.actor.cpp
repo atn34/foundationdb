@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <random>
 
+#include <string_view>
 #include "flow/ActorCollection.h"
 #include "flow/flow.h"
 
@@ -35,30 +36,66 @@ struct Random {
 
 struct EndSimulation {};
 
-struct FuzzRandom : Random {
-	std::string owned_bytes;
+int bytesRequired(int64_t denom) {
+	ASSERT(denom > 0);
+	int result = 0;
+	while (denom > 0) {
+		result++;
+		denom >>= 8;
+	}
+	return result;
+}
+
+struct RecordRandomBytes : Random {
+	Random* src; // Not owned
+	std::string bytes;
+	double random01() override {
+		auto result = src->random01();
+		auto u = static_cast<uint32_t>(result * static_cast<double>(std::numeric_limits<uint32_t>::max()));
+		bytes += std::string_view(reinterpret_cast<char*>(&u), sizeof(u));
+		return result;
+	}
+	int32_t randomInt(int32_t min, int32_t max_plus_one) override {
+		auto result = src->randomInt(min, max_plus_one);
+		bytes +=
+		    std::string_view(reinterpret_cast<char*>(&result), bytesRequired(int64_t{ max_plus_one } - int64_t{ min }));
+		return result;
+	}
+	~RecordRandomBytes() = default;
+};
+
+struct ReplayRandomBytes : Random {
 	std::string_view bytes;
 	double random01() override {
-		if (bytes.size() >= 4) {
-			double result = static_cast<double>(*reinterpret_cast<const uint32_t*>(bytes.begin())) /
-			                static_cast<double>(std::numeric_limits<uint32_t>::max());
-			bytes = bytes.substr(4);
+		auto bytes4 = consumeBytes(4);
+		uint32_t u;
+		memcpy(&u, bytes4.begin(), 4);
+		return static_cast<double>(u) / static_cast<double>(std::numeric_limits<uint32_t>::max());
+	}
+	int32_t randomInt(int32_t min, int32_t max_plus_one) override {
+		int64_t min64 = min;
+		int64_t max_plus_one64 = max_plus_one;
+		auto numeratorBytes = consumeBytes(bytesRequired(max_plus_one64 - min64));
+		int64_t numerator = 0;
+		memcpy(&numerator, numeratorBytes.begin(), numeratorBytes.size());
+		return std::clamp(min64 + numerator, min64, max_plus_one64 - 1);
+	}
+	std::string_view consumeBytes(int size) {
+		if (bytes.size() >= size) {
+			auto result = bytes.substr(0, size);
+			bytes = bytes.substr(size);
 			return result;
 		}
 		throw EndSimulation{};
 	}
-	int32_t randomInt(int32_t min, int32_t max_plus_one) override {
-		int32_t result = min + random01() * (max_plus_one - min);
-		return std::min(std::max(result, min), max_plus_one - 1);
-	}
-	~FuzzRandom() override = default;
+	~ReplayRandomBytes() override = default;
 };
 
 struct FairRandom : Random {
 	explicit FairRandom(int seed) : rand_(seed) {}
 	double random01() override { return std::uniform_real_distribution{ 0.0, 1.0 }(rand_); }
-	int randomInt(int min, int maxPlusOne) override {
-		return std::uniform_int_distribution{ min, maxPlusOne - 1 }(rand_);
+	int32_t randomInt(int32_t min, int32_t maxPlusOne) override {
+		return std::uniform_int_distribution<int64_t>{ min, maxPlusOne - 1 }(rand_);
 	}
 	~FairRandom() override = default;
 
@@ -73,18 +110,25 @@ enum class SchedulingStrategy {
 
 struct RandomSim : Simulator {
 	explicit RandomSim(Random* rand, SchedulingStrategy s = SchedulingStrategy::InOrder)
-	  : rand_(rand), scheduling_strategy_(s) {
-		max_buggified_delay = 0.2 * random01();
-	}
+	  : rand_(rand), scheduling_strategy_(s), max_buggified_delay(0.2 * rand->random01()) {}
+
 	Future<Void> delay(double seconds) override {
 		if (random01() < 0.25) {
 			seconds += max_buggified_delay * pow(random01(), 1000.0);
 		}
 		Promise<Void> task;
-		tasks_.push_back({ task, now_ + seconds, stable++ });
-		std::push_heap(tasks_.begin(), tasks_.end(), std::greater<Task>{});
+		switch (scheduling_strategy_) {
+		case SchedulingStrategy::InOrder:
+			tasks_.push_back({ task, now_ + seconds, stable++ });
+			std::push_heap(tasks_.begin(), tasks_.end(), std::greater<Task>{});
+			break;
+		case SchedulingStrategy::RandomOrder:
+			tasks_.push_back({ task, now_ + seconds, stable++ });
+			break;
+		}
 		return task.getFuture();
 	}
+
 	double now() override { return now_; }
 	int randomInt(int min, int maxPlusOne) override { return rand_->randomInt(min, maxPlusOne); }
 	double random01() override { return rand_->random01(); }
@@ -114,7 +158,7 @@ private:
 	struct Task {
 		Promise<Void> p;
 		double t;
-		int stable; // For determinism
+		int stable; // For determinism with SchedulingStrategy::InOrder
 		friend bool operator>(const Task& lhs, const Task& rhs) {
 			return std::make_pair(lhs.t, lhs.stable) > std::make_pair(rhs.t, rhs.stable);
 		}
@@ -122,10 +166,10 @@ private:
 	double now_ = 0;
 	std::vector<Task> tasks_;
 	Random* rand_; // Not owned
-	SchedulingStrategy scheduling_strategy_;
+	const SchedulingStrategy scheduling_strategy_;
 	int stable = 0;
 	bool running = true;
-	double max_buggified_delay;
+	const double max_buggified_delay;
 };
 
 ACTOR Future<Void> poisson(Simulator* sim, double* last, double meanInterval) {
@@ -153,7 +197,7 @@ struct ExampleService {
 		}
 	}
 
-	constexpr static int kSize = 1000;
+	constexpr static int kSize = 10000;
 
 private:
 	ACTOR static Future<Void> swap_(ExampleService* self, int i, int j) {
@@ -223,7 +267,7 @@ void runSimulation(Random* random) {
 #ifdef USE_LIBFUZZER
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, size_t Size) {
-	FuzzRandom rand;
+	ReplayRandomBytes rand;
 	rand.bytes = { reinterpret_cast<const char*>(Data), Size };
 	runSimulation(&rand);
 	return 0;

@@ -7,7 +7,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, size_t Size);
 std::string getFileContent(const std::string& path) {
 	std::ifstream file(path);
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-
 	return content;
 }
 
