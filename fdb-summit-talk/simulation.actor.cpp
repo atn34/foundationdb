@@ -56,9 +56,11 @@ struct RecordRandomBytes : Random {
 		return result;
 	}
 	int32_t randomInt(int32_t min, int32_t max_plus_one) override {
-		auto result = src->randomInt(min, max_plus_one);
+		int64_t result = src->randomInt(min, max_plus_one);
+		result -= min;
 		bytes +=
 		    std::string_view(reinterpret_cast<char*>(&result), bytesRequired(int64_t{ max_plus_one } - int64_t{ min }));
+		result += min;
 		return result;
 	}
 	~RecordRandomBytes() = default;
