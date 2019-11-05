@@ -110,10 +110,11 @@ enum class SchedulingStrategy {
 
 struct RandomSim : Simulator {
 	explicit RandomSim(Random* rand, SchedulingStrategy s = SchedulingStrategy::InOrder)
-	  : rand_(rand), scheduling_strategy_(s), max_buggified_delay(0.2 * rand->random01()) {}
+	  : rand_(rand), scheduling_strategy_(s),
+	    max_buggified_delay(scheduling_strategy_ == SchedulingStrategy::InOrder ? 0.2 * rand->random01() : 0) {}
 
 	Future<Void> delay(double seconds) override {
-		if (random01() < 0.25) {
+		if (max_buggified_delay > 0 && random01() < 0.25) {
 			seconds += max_buggified_delay * pow(random01(), 1000.0);
 		}
 		Promise<Void> task;
