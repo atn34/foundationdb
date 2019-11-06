@@ -186,7 +186,7 @@ private:
 };
 
 ACTOR Future<Void> poisson(Simulator* sim, double* last, double meanInterval) {
-	*last += meanInterval * -log(sim->random01());
+	*last += meanInterval * -log(sim->random01() + 1e-6);
 	wait(sim->delay(*last - sim->now()));
 	return Void();
 }
