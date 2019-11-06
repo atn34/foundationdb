@@ -113,9 +113,10 @@ enum class SchedulingStrategy {
 };
 
 struct RandomSim : Simulator {
-	explicit RandomSim(Random* rand, SchedulingStrategy s)
+	explicit RandomSim(Random* rand, SchedulingStrategy s, bool* foundCounterExample)
 	  : rand_(rand), scheduling_strategy_(s),
-	    max_buggified_delay(scheduling_strategy_ == SchedulingStrategy::InOrder ? 0.2 * rand->random01() : 0) {}
+	    max_buggified_delay(scheduling_strategy_ == SchedulingStrategy::InOrder ? 0.2 * rand->random01() : 0),
+	    foundCounterExample(foundCounterExample) {}
 
 	Future<Void> delay(double seconds) override {
 		if (max_buggified_delay > 0 && random01() < 0.25) {
@@ -135,8 +136,22 @@ struct RandomSim : Simulator {
 	}
 
 	double now() override { return now_; }
-	int randomInt(int min, int maxPlusOne) override { return rand_->randomInt(min, maxPlusOne); }
-	double random01() override { return rand_->random01(); }
+	int randomInt(int min, int maxPlusOne) override {
+		try {
+			return rand_->randomInt(min, maxPlusOne);
+		} catch (EndSimulation&) {
+			stop();
+			throw;
+		}
+	}
+	double random01() override {
+		try {
+			return rand_->random01();
+		} catch (EndSimulation&) {
+			stop();
+			throw;
+		}
+	}
 	void run() override {
 		while (running && !tasks_.empty()) {
 			Task task;
@@ -160,12 +175,12 @@ struct RandomSim : Simulator {
 	void check(bool x) override {
 		if (!x) {
 			stop();
-			foundCounterExample = true;
+			if (foundCounterExample != nullptr) {
+				*foundCounterExample = true;
+			}
 		}
 	}
 	~RandomSim() override = default;
-
-	bool foundCounterExample = false;
 
 private:
 	struct Task {
@@ -183,6 +198,7 @@ private:
 	int stable = 0;
 	bool running = true;
 	const double max_buggified_delay;
+	bool* foundCounterExample;
 };
 
 ACTOR Future<Void> poisson(Simulator* sim, double* last, double meanInterval) {
@@ -203,19 +219,18 @@ struct ExampleService {
 		return Void();
 	}
 
-	explicit ExampleService(Simulator* sim) : sim(sim) {
-		elements.resize(kSize);
+	explicit ExampleService(Simulator* sim, int size_) : sim(sim), size_(size_) {
+		elements.resize(size());
 		for (int i = 0; i < elements.size(); ++i) {
 			elements[i] = i;
 		}
 	}
 
-	constexpr static int kSize = 1000;
+	int size() const { return size_; }
 
 private:
 	ACTOR static Future<Void> swap_(ExampleService* self, int i, int j) {
-		static int freshSwapId = 0;
-		state [[maybe_unused]] int swapId = freshSwapId++;
+		state [[maybe_unused]] int swapId = self->freshSwapId++;
 		TRACE("%f\t%d\tBegin\tswap(%d, %d)\n", self->sim->now(), swapId, i, j);
 		state int x = self->elements[i];
 		state int y = self->elements[j];
@@ -226,6 +241,8 @@ private:
 		return Void();
 	}
 
+	int size_;
+	int freshSwapId = 0;
 	Simulator* sim;
 	std::vector<int> elements;
 };
@@ -243,7 +260,7 @@ ACTOR Future<Void> client(Simulator* sim, ExampleService* service) {
 		if (sim->randomInt(0, 100) == 0) {
 			wait(service->checkInvariant());
 		} else {
-			auto pair = sampleDistinctOrderedPair(sim, ExampleService::kSize);
+			auto pair = sampleDistinctOrderedPair(sim, service->size());
 			wait(service->swap(pair.first, pair.second));
 		}
 	}
@@ -251,7 +268,7 @@ ACTOR Future<Void> client(Simulator* sim, ExampleService* service) {
 
 ACTOR Future<Void> clients(Simulator* sim, ExampleService* service) {
 	state ActorCollection actors(/*returnWhenEmptied*/ false);
-	for (int i = 0; i < 2; ++i) {
+	for (int i = 0; i < 5; ++i) {
 		actors.add(client(sim, service));
 	}
 	wait(actors.getResult());
@@ -264,25 +281,29 @@ ACTOR Future<Void> stopAfterSeconds(Simulator* sim, double seconds) {
 	return Void();
 }
 
-bool findCounterExample(Random* random, SchedulingStrategy s) {
+bool findCounterExample(Random* random, SchedulingStrategy s, int nodes) {
 	TRACE("Time\t\tOpId\tPhase\tOp\n");
-	RandomSim sim{ random, s };
+	bool foundCounterExample = false;
 	try {
-		ExampleService service{ &sim };
+		RandomSim sim{ random, s, &foundCounterExample };
+		ExampleService service{ &sim, nodes };
 		auto f1 = clients(&sim, &service);
-		auto f2 = stopAfterSeconds(&sim, 100.0);
+		auto f2 = stopAfterSeconds(&sim, 10);
 		sim.run();
 	} catch (EndSimulation&) {
 	}
-	return sim.foundCounterExample;
+	return foundCounterExample;
 }
+
+const auto strategy = SchedulingStrategy::InOrder;
+const int nodes = 100;
 
 #ifdef USE_LIBFUZZER
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, size_t Size) {
 	ReplayRandomBytes rand;
 	rand.bytes = { reinterpret_cast<const char*>(Data), Size };
-	if (findCounterExample(&rand, SchedulingStrategy::RandomOrder)) {
+	if (findCounterExample(&rand, strategy, nodes)) {
 		std::abort();
 	}
 	return 0;
@@ -291,26 +312,25 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, size_t Size) {
 #else
 
 int main(int argc, char** argv) {
-	auto strategy = SchedulingStrategy::RandomOrder;
 #ifdef DO_TRACE
 	ASSERT(argc > 1);
 	FairRandom rand{ std::atoi(argv[1]) };
-	findCounterExample(&rand, strategy);
+	return findCounterExample(&rand, strategy, nodes);
 #else
 	auto start = std::chrono::steady_clock::now();
 	int seed = 0;
 	int smallest_cx = std::numeric_limits<int>::max();
 	for (;;) {
 		FairRandom r{ seed };
-		if (findCounterExample(&r, strategy)) {
+		if (findCounterExample(&r, strategy, nodes)) {
 			FairRandom r{ seed };
 			RecordRandomBytes rec;
 			rec.src = &r;
-			ASSERT(findCounterExample(&rec, strategy));
+			ASSERT(findCounterExample(&rec, strategy, nodes));
 			if (rec.bytes.size() < smallest_cx) {
 				auto end = std::chrono::steady_clock::now();
-				printf("Found counterexample of size %d, seed %d, ms elapsed %d\n", rec.bytes.size(), seed,
-				       std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+				printf("Found counterexample of size %d, seed %d, seconds elapsed %f\n", rec.bytes.size(), seed,
+				       std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() * 1e-3);
 				smallest_cx = rec.bytes.size();
 			}
 		}
