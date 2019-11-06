@@ -37,7 +37,6 @@ struct Random {
 };
 
 struct EndSimulation {};
-struct FoundCounterExample {};
 
 int bytesRequired(int64_t denom) {
 	ASSERT(denom > 0);
