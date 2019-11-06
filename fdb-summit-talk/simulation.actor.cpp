@@ -1,7 +1,8 @@
 #include <algorithm>
+#include <chrono>
 #include <random>
-
 #include <string_view>
+
 #include "flow/ActorCollection.h"
 #include "flow/flow.h"
 
@@ -25,6 +26,7 @@ struct Simulator {
 	virtual double random01() = 0;
 	virtual void run() = 0;
 	virtual void stop() = 0;
+	virtual void check(bool) = 0;
 	virtual ~Simulator() = default;
 };
 
@@ -35,6 +37,7 @@ struct Random {
 };
 
 struct EndSimulation {};
+struct FoundCounterExample {};
 
 int bytesRequired(int64_t denom) {
 	ASSERT(denom > 0);
@@ -111,7 +114,7 @@ enum class SchedulingStrategy {
 };
 
 struct RandomSim : Simulator {
-	explicit RandomSim(Random* rand, SchedulingStrategy s = SchedulingStrategy::InOrder)
+	explicit RandomSim(Random* rand, SchedulingStrategy s)
 	  : rand_(rand), scheduling_strategy_(s),
 	    max_buggified_delay(scheduling_strategy_ == SchedulingStrategy::InOrder ? 0.2 * rand->random01() : 0) {}
 
@@ -155,7 +158,15 @@ struct RandomSim : Simulator {
 		}
 	}
 	void stop() override { running = false; }
+	void check(bool x) override {
+		if (!x) {
+			stop();
+			foundCounterExample = true;
+		}
+	}
 	~RandomSim() override = default;
+
+	bool foundCounterExample = false;
 
 private:
 	struct Task {
@@ -188,7 +199,7 @@ struct ExampleService {
 		auto copy = elements;
 		std::sort(copy.begin(), copy.end());
 		for (int i = 0; i < copy.size(); ++i) {
-			ASSERT_ABORT(copy[i] == i);
+			sim->check(copy[i] == i);
 		}
 		return Void();
 	}
@@ -200,7 +211,7 @@ struct ExampleService {
 		}
 	}
 
-	constexpr static int kSize = 10000;
+	constexpr static int kSize = 1000;
 
 private:
 	ACTOR static Future<Void> swap_(ExampleService* self, int i, int j) {
@@ -241,7 +252,7 @@ ACTOR Future<Void> client(Simulator* sim, ExampleService* service) {
 
 ACTOR Future<Void> clients(Simulator* sim, ExampleService* service) {
 	state ActorCollection actors(/*returnWhenEmptied*/ false);
-	for (int i = 0; i < 5; ++i) {
+	for (int i = 0; i < 2; ++i) {
 		actors.add(client(sim, service));
 	}
 	wait(actors.getResult());
@@ -254,17 +265,17 @@ ACTOR Future<Void> stopAfterSeconds(Simulator* sim, double seconds) {
 	return Void();
 }
 
-void runSimulation(Random* random) {
+bool findCounterExample(Random* random, SchedulingStrategy s) {
 	TRACE("Time\t\tOpId\tPhase\tOp\n");
+	RandomSim sim{ random, s };
 	try {
-		RandomSim sim{ random, SchedulingStrategy::RandomOrder };
 		ExampleService service{ &sim };
-		std::vector<Future<Void>> futures;
-		futures.push_back(clients(&sim, &service));
-		futures.push_back(stopAfterSeconds(&sim, 100.0));
+		auto f1 = clients(&sim, &service);
+		auto f2 = stopAfterSeconds(&sim, 100.0);
 		sim.run();
 	} catch (EndSimulation&) {
 	}
+	return sim.foundCounterExample;
 }
 
 #ifdef USE_LIBFUZZER
@@ -272,25 +283,40 @@ void runSimulation(Random* random) {
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, size_t Size) {
 	ReplayRandomBytes rand;
 	rand.bytes = { reinterpret_cast<const char*>(Data), Size };
-	runSimulation(&rand);
+	if (findCounterExample(&rand, SchedulingStrategy::RandomOrder)) {
+		std::abort();
+	}
 	return 0;
 }
 
 #else
 
 int main(int argc, char** argv) {
+	auto strategy = SchedulingStrategy::RandomOrder;
 #ifdef DO_TRACE
 	ASSERT(argc > 1);
 	FairRandom rand{ std::atoi(argv[1]) };
-	runSimulation(&rand);
+	findCounterExample(&rand, strategy);
 #else
+	auto start = std::chrono::steady_clock::now();
 	int seed = 0;
+	int smallest_cx = std::numeric_limits<int>::max();
 	for (;;) {
-		printf("Trying seed %d\n", seed);
-		FairRandom rand{ seed++ };
-		runSimulation(&rand);
+		FairRandom r{ seed };
+		if (findCounterExample(&r, strategy)) {
+			FairRandom r{ seed };
+			RecordRandomBytes rec;
+			rec.src = &r;
+			ASSERT(findCounterExample(&rec, strategy));
+			if (rec.bytes.size() < smallest_cx) {
+				auto end = std::chrono::steady_clock::now();
+				printf("Found counterexample of size %d, seed %d, ms elapsed %d\n", rec.bytes.size(), seed,
+				       std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+				smallest_cx = rec.bytes.size();
+			}
+		}
+		++seed;
 	}
 #endif
 }
-
 #endif
