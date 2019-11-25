@@ -215,7 +215,7 @@ else()
   endif()
   if (CMAKE_GENERATOR STREQUAL Xcode)
   else()
-    add_compile_options(-Werror)
+    # add_compile_options(-Werror)
   endif()
   if (GCC)
     add_compile_options(-Wno-pragmas)
@@ -229,6 +229,7 @@ else()
     -Wno-deprecated
     -fvisibility=hidden
     -Wreturn-type
+    -Wmaybe-uninitialized
     -fPIC)
   if (GPERFTOOLS_FOUND AND GCC)
     add_compile_options(
