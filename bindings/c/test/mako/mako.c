@@ -427,6 +427,8 @@ int run_one_transaction(FDBTransaction *transaction, mako_args_t *args,
   int randstrlen;
   int rangei;
 
+  rc = FDB_SUCCESS;
+
   /* make sure that the transaction object is clean */
   fdb_transaction_reset(transaction);
 

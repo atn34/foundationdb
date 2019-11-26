@@ -699,6 +699,8 @@ private:
 			} else {
 				load_<Alternative + 1>(type_tag, member);
 			}
+		} else {
+			member = {};
 		}
 	}
 };
@@ -809,6 +811,7 @@ struct LoadMember {
 		if constexpr (is_vector_of_union_like<Member>) {
 			if (!field_present()) {
 				i += 2;
+				member = {};
 				return;
 			}
 			const uint8_t* types_current = &message[vtable[i++]];
@@ -837,6 +840,7 @@ struct LoadMember {
 		} else if constexpr (is_union_like<Member>) {
 			if (!field_present()) {
 				i += 2;
+				member = {};
 				return;
 			}
 			uint8_t fb_type_tag;
@@ -853,6 +857,8 @@ struct LoadMember {
 		} else {
 			if (field_present()) {
 				load_helper(member, &message[vtable[i]], context);
+			} else {
+				member = {};
 			}
 			++i;
 		}
@@ -1040,10 +1046,10 @@ struct LoadSaveHelper<std::vector<bool, Alloc>, Context> : Context {
 		current += sizeof(uint32_t);
 		member.clear();
 		member.resize(length);
-		bool m;
+		uint8_t m;
 		for (uint32_t i = 0; i < length; ++i) {
 			load_helper(m, current, *this);
-			member[i] = m;
+			member[i] = m != 0;
 			current += fb_size<bool>;
 		}
 	}

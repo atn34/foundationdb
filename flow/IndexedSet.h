@@ -901,7 +901,7 @@ void IndexedSet<T,Metric>::erase( typename IndexedSet<T,Metric>::iterator begin,
 template <class T, class Metric>
 void IndexedSet<T,Metric>::erase(iterator toErase) {
 	Node* rebalanceNode;
-	int rebalanceDir;
+	int rebalanceDir = -1; // Initialize to an invalid value for -Wmaybe-uninitialized. Valid values are 0 and 1
 
 	{
 		// Find the node to erase
@@ -952,6 +952,7 @@ void IndexedSet<T,Metric>::erase(iterator toErase) {
 	}
 
 	if (!rebalanceNode) return;
+	ASSERT(rebalanceDir != -1);
 
 	while (true) {
 		rebalanceNode->balance += rebalanceDir ? -1 : +1;

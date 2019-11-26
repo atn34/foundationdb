@@ -664,19 +664,19 @@ ACTOR static void deliver(TransportData* self, Endpoint destination, ArenaReader
 		g_network->setCurrentTask( TaskPriority::ReadSocket );
 }
 
-static void scanPackets(TransportData* transport, uint8_t*& unprocessed_begin, const uint8_t* e, Arena& arena,
-                        NetworkAddress const& peerAddress, ProtocolVersion peerProtocolVersion) {
+template <bool checksumEnabled>
+static void scanPackets_(TransportData* transport, uint8_t*& unprocessed_begin, const uint8_t* e, Arena& arena,
+                         NetworkAddress const& peerAddress, ProtocolVersion peerProtocolVersion) {
 	// Find each complete packet in the given byte range and queue a ready task to deliver it.
 	// Remove the complete packets from the range by increasing unprocessed_begin.
 	// There won't be more than 64K of data plus one packet, so this shouldn't take a long time.
 	uint8_t* p = unprocessed_begin;
 
-	const bool checksumEnabled = !peerAddress.isTLS();
 	loop {
 		uint32_t packetLen, packetChecksum;
 
 		//Retrieve packet length and checksum
-		if (checksumEnabled) {
+		if constexpr (checksumEnabled) {
 			if (e-p < sizeof(uint32_t) * 2) break;
 			packetLen = *(uint32_t*)p; p += sizeof(uint32_t);
 			packetChecksum = *(uint32_t*)p; p += sizeof(uint32_t);
@@ -693,7 +693,7 @@ static void scanPackets(TransportData* transport, uint8_t*& unprocessed_begin, c
 		if (e-p<packetLen) break;
 		ASSERT( packetLen >= sizeof(UID) );
 
-		if (checksumEnabled) {
+		if constexpr (checksumEnabled) {
 			bool isBuggifyEnabled = false;
 			if(g_network->isSimulated() && g_network->now() - g_simulator.lastConnectionFailure > g_simulator.connectionFailuresDisableDuration && BUGGIFY_WITH_PROB(0.0001)) {
 				g_simulator.lastConnectionFailure = g_network->now();
@@ -754,6 +754,16 @@ static void scanPackets(TransportData* transport, uint8_t*& unprocessed_begin, c
 		deliver(transport, Endpoint({ peerAddress }, token), std::move(reader), true);
 
 		unprocessed_begin = p = p + packetLen;
+	}
+}
+
+static void scanPackets(TransportData* transport, uint8_t*& unprocessed_begin, const uint8_t* e, Arena& arena,
+                        NetworkAddress const& peerAddress, ProtocolVersion peerProtocolVersion) {
+	const bool checksumEnabled = !peerAddress.isTLS();
+	if (checksumEnabled) {
+		scanPackets_<true>(transport, unprocessed_begin, e, arena, peerAddress, peerProtocolVersion);
+	} else {
+		scanPackets_<false>(transport, unprocessed_begin, e, arena, peerAddress, peerProtocolVersion);
 	}
 }
 
