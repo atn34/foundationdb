@@ -700,7 +700,7 @@ private:
 				load_<Alternative + 1>(type_tag, member);
 			}
 		} else {
-			member = {};
+			member = std::decay_t<decltype(member)>{};
 		}
 	}
 };
@@ -811,7 +811,7 @@ struct LoadMember {
 		if constexpr (is_vector_of_union_like<Member>) {
 			if (!field_present()) {
 				i += 2;
-				member = {};
+				member = std::decay_t<decltype(member)>{};
 				return;
 			}
 			const uint8_t* types_current = &message[vtable[i++]];
@@ -840,7 +840,7 @@ struct LoadMember {
 		} else if constexpr (is_union_like<Member>) {
 			if (!field_present()) {
 				i += 2;
-				member = {};
+				member = std::decay_t<decltype(member)>{};
 				return;
 			}
 			uint8_t fb_type_tag;
@@ -858,7 +858,7 @@ struct LoadMember {
 			if (field_present()) {
 				load_helper(member, &message[vtable[i]], context);
 			} else {
-				member = {};
+				member = std::decay_t<decltype(member)>{};
 			}
 			++i;
 		}
