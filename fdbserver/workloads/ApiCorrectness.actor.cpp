@@ -228,7 +228,7 @@ public:
 			int pdfArray[] = { 0, (int)(100 * setProbability), 100, 50, 50, 20, (int)(100 * (1 - setProbability)), (int)(10 * (1 - setProbability)) };
 			vector<int> pdf = vector<int>(pdfArray, pdfArray + 8);
 
-			OperationType operation;
+			OperationType operation = SET;
 
 			//Choose a random operation type (SET, GET, GET_RANGE, GET_RANGE_SELECTOR, GET_KEY, CLEAR, CLEAR_RANGE).
 			int totalDensity = 0;

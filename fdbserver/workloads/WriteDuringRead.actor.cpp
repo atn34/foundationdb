@@ -762,6 +762,8 @@ struct WriteDuringReadWorkload : TestWorkload {
 										case 7:
 											opType = MutationRef::ByteMax;
 											break;
+										default:
+											UNREACHABLE();
 									}
 									self->changeCount.insert( key, changeNum++ );
 									bool noConflict = deterministicRandom()->random01() < 0.5;

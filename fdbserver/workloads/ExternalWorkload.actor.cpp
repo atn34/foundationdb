@@ -64,7 +64,7 @@ struct FDBLoggerImpl : FDBLogger {
 	void trace(FDBSeverity sev, const std::string& name,
 	           const std::vector<std::pair<std::string, std::string>>& details) override {
 		auto traceFun = [=]() -> Future<Void> {
-			Severity severity;
+			Severity severity = SevInfo;
 			switch (sev) {
 			case FDBSeverity::Debug:
 				severity = SevDebug;
@@ -81,6 +81,8 @@ struct FDBLoggerImpl : FDBLogger {
 			case FDBSeverity::Error:
 				severity = SevError;
 				break;
+			default:
+				TraceEvent(SevError, "UnrecognizedTraceSeverity").detail("Severity", sev);
 			}
 			TraceEvent evt(severity, name.c_str());
 			for (const auto& p : details) {

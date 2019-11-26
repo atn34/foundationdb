@@ -306,11 +306,10 @@ struct AsyncFileCorrectnessWorkload : public AsyncFileWorkload
 					maxOffset = fileSize - 1;
 					if(maxOffset < 0)
 						info.operation = WRITE;
-				}
 
-				//Only allow reads once the file has gotten large enough (to prevent blocking on locks)
-				if(maxOffset < targetFileSize / 2)
-					info.operation = WRITE;
+					// Only allow reads once the file has gotten large enough (to prevent blocking on locks)
+					if (maxOffset < targetFileSize / 2) info.operation = WRITE;
+				}
 
 				//Writes can be up to the target file size or the current file size (the current file size could be larger than the target as a result of a truncate)
 				if(info.operation == WRITE)

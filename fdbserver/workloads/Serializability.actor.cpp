@@ -196,6 +196,8 @@ struct SerializabilityWorkload : TestWorkload {
 					case 7:
 						opType = MutationRef::ByteMax;
 						break;
+				 	default:
+						UNREACHABLE();
 				}
 				op.mutationOp = MutationRef(opType, key, value);
 				hasMutation = true;

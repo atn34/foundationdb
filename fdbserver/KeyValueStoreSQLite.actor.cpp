@@ -77,6 +77,7 @@ struct PageChecksumCodec {
 		bool operator==(const SumType &rhs) const { return part1 == rhs.part1 && part2 == rhs.part2; }
 		uint32_t part1;
 		uint32_t part2;
+		SumType(uint32_t part1, uint32_t part2) : part1(part1), part2(part2) {}
 		std::string toString() { return format("0x%08x%08x", part1, part2); }
 	};
 
@@ -100,20 +101,18 @@ struct PageChecksumCodec {
 			return true;
 		}
 
-		SumType sum;
+		std::string calculatedCRC;
 		if (pSumInPage->part1 == 0) {
 			// part1 being 0 indicates with high probability that a CRC32 checksum
 			// was used, so check that first. If this checksum fails, there is still
 			// some chance the page was written with hashlittle2, so fall back to checking
 			// hashlittle2
-			sum.part1 = 0;
-			sum.part2 = crc32c_append(0xfdbeefdb, static_cast<uint8_t*>(data), dataLen);
+			SumType sum(0, crc32c_append(0xfdbeefdb, static_cast<uint8_t*>(data), dataLen));
 			if (sum == *pSumInPage) return true;
+			calculatedCRC = sum.toString();
 		}
 
-		SumType hashLittle2Sum;
-		hashLittle2Sum.part1 = pageNumber; // DO NOT CHANGE
-		hashLittle2Sum.part2 = 0x5ca1ab1e;
+		SumType hashLittle2Sum(pageNumber, 0x5ca1ab1e); // DO NOT CHANGE
 		hashlittle2(pData, dataLen, &hashLittle2Sum.part1, &hashLittle2Sum.part2);
 		if (hashLittle2Sum == *pSumInPage) return true;
 
@@ -127,7 +126,7 @@ struct PageChecksumCodec {
 			    .detail("PageSize", pageLen)
 			    .detail("ChecksumInPage", pSumInPage->toString())
 			    .detail("ChecksumCalculatedHL2", hashLittle2Sum.toString());
-			if (pSumInPage->part1 == 0) trEvent.detail("ChecksumCalculatedCRC", sum.toString());
+			if (pSumInPage->part1 == 0) trEvent.detail("ChecksumCalculatedCRC", calculatedCRC);
 		}
 		return false;
 	}
