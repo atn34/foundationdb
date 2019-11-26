@@ -1164,7 +1164,7 @@ struct NoFileIdentifier {};
 template <class T>
 struct EnsureTable
   : std::conditional_t<HasFileIdentifier<T>::value, detail::YesFileIdentifier<T>, detail::NoFileIdentifier> {
-	EnsureTable() = default;
+	EnsureTable() : t() {}
 	EnsureTable(const T& t) : t(t) {}
 	template <class Archive>
 	void serialize(Archive& ar) {
