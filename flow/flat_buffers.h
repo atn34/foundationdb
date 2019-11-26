@@ -832,6 +832,8 @@ struct LoadMember {
 				if (types_current[i] > 0) {
 					uint8_t type_tag = types_current[i] - 1; // Flatbuffers indexes from 1.
 					(LoadAlternative<Context, union_like_traits<T>>{ context, current }).load(type_tag, value);
+				} else {
+					value = std::decay_t<decltype(value)>{};
 				}
 				*inserter = std::move(value);
 				++inserter;
@@ -850,6 +852,8 @@ struct LoadMember {
 			if (field_present() && fb_type_tag > 0) {
 				(LoadAlternative<Context, union_like_traits<Member>>{ context, &message[vtable[i]] })
 				    .load(type_tag, member);
+			} else {
+				member = std::decay_t<decltype(member)>{};
 			}
 			++i;
 		} else if constexpr (_SizeOf<Member>::size == 0) {

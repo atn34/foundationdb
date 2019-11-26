@@ -423,6 +423,7 @@ public:
 
 	SAV(int futures, int promises) : futures(futures), promises(promises), error_state(Error::fromCode(UNSET_ERROR_CODE)) {
 		Callback<T>::prev = Callback<T>::next = this;
+		memset(&value_storage, 0, sizeof(value_storage));
 	}
 	~SAV() {
 		if (int16_t(error_state.code()) == SET_ERROR_CODE)
