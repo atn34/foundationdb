@@ -372,12 +372,16 @@ struct string_serialized_traits<KeyValueRef> : std::true_type {
 		uint32_t sz = item.key.size();
 		*reinterpret_cast<decltype(sz)*>(out) = sz;
 		out += sizeof(sz);
-		memcpy(out, item.key.begin(), sz);
+		if (sz > 0) {
+			memcpy(out, item.key.begin(), sz);
+		}
 		out += sz;
 		sz = item.value.size();
 		*reinterpret_cast<decltype(sz)*>(out) = sz;
 		out += sizeof(sz);
-		memcpy(out, item.value.begin(), sz);
+		if (sz > 0) {
+			memcpy(out, item.value.begin(), sz);
+		}
 		out += sz;
 		return out - begin;
 	}
@@ -419,7 +423,9 @@ inline Key keyAfter( const KeyRef& key ) {
 
 	Standalone<StringRef> r;
 	uint8_t* s = new (r.arena()) uint8_t[ key.size() + 1 ];
-	memcpy(s, key.begin(), key.size() );
+	if (key.size() > 0) {
+		memcpy(s, key.begin(), key.size());
+	}
 	s[key.size()] = 0;
 	((StringRef&) r) = StringRef( s, key.size() + 1 );
 	return r;
@@ -428,7 +434,9 @@ inline KeyRef keyAfter( const KeyRef& key, Arena& arena ) {
 	if(key == LiteralStringRef("\xff\xff"))
 		return key;
 	uint8_t* t = new ( arena ) uint8_t[ key.size()+1 ];
-	memcpy(t, key.begin(), key.size() );
+	if (key.size() > 0) {
+		memcpy(t, key.begin(), key.size());
+	}
 	t[key.size()] = 0;
 	return KeyRef(t,key.size()+1);
 }
@@ -437,7 +445,9 @@ inline KeyRange singleKeyRange( const KeyRef& a ) {
 }
 inline KeyRangeRef singleKeyRange( KeyRef const& key, Arena& arena ) {
 	uint8_t* t = new ( arena ) uint8_t[ key.size()+1 ];
-	memcpy(t, key.begin(), key.size() );
+	if (key.size() > 0) {
+		memcpy(t, key.begin(), key.size());
+	}
 	t[key.size()] = 0;
 	return KeyRangeRef( KeyRef(t,key.size()), KeyRef(t, key.size()+1) );
 }
