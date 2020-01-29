@@ -72,12 +72,13 @@ struct MutationRef {
 		CompareAndClear,
 		MAX_ATOMIC_OP
 	};
+	static_assert(MAX_ATOMIC_OP == sizeof(typeString) / sizeof(typeString[0]));
 	// This is stored this way for serialization purposes.
 	uint8_t type;
 	StringRef param1, param2;
 
 	MutationRef() {}
-	MutationRef( Type t, StringRef a, StringRef b ) : type(t), param1(a), param2(b) {}
+	MutationRef(Type t, StringRef a, StringRef b) : type(t), param1(a), param2(b) { ASSERT(type <= MAX_ATOMIC_OP); }
 	MutationRef( Arena& to, const MutationRef& from ) : type(from.type), param1( to, from.param1 ), param2( to, from.param2 ) {}
 	int totalSize() const { return OVERHEAD_BYTES + param1.size() + param2.size(); } 
 	int expectedSize() const { return param1.size() + param2.size(); }
@@ -94,6 +95,7 @@ struct MutationRef {
 	template <class Ar>
 	void serialize( Ar& ar ) {
 		serializer(ar, type, param1, param2);
+		ASSERT(type < MAX_ATOMIC_OP);
 	}
 
 	// These masks define which mutation types have particular properties (they are used to implement isSingleKeyMutation() etc)
