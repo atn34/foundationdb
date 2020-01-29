@@ -95,7 +95,9 @@ struct MutationRef {
 	template <class Ar>
 	void serialize( Ar& ar ) {
 		serializer(ar, type, param1, param2);
-		ASSERT(type < MAX_ATOMIC_OP);
+		if (Ar::isDeserializing || Ar::isSerializing) {
+			ASSERT(type < MAX_ATOMIC_OP);
+		}
 	}
 
 	// These masks define which mutation types have particular properties (they are used to implement isSingleKeyMutation() etc)
