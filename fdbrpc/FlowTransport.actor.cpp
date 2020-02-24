@@ -851,6 +851,10 @@ ACTOR static Future<Void> connectionReader(
 					int32_t connectPacketSize = ((ConnectPacket*)unprocessed_begin)->totalPacketSize();
 					if ( unprocessed_end-unprocessed_begin >= connectPacketSize ) {
 						auto protocolVersion = ((ConnectPacket*)unprocessed_begin)->protocolVersion;
+						if (BUGGIFY) {
+							TEST(true); // Buggify protocol version
+							protocolVersion = ProtocolVersion(ProtocolVersion::minValidProtocolVersion);
+						}
 						BinaryReader pktReader(unprocessed_begin, connectPacketSize, AssumeVersion(protocolVersion));
 						ConnectPacket pkt;
 						serializer(pktReader, pkt);
