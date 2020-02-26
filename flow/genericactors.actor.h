@@ -1247,56 +1247,10 @@ private:
 	int64_t active;
 	Promise<Void> broken_on_destruct;
 
-	ACTOR static Future<Void> takeActor(FlowLock* lock, TaskPriority taskID, int64_t amount) {
-		state std::list<std::pair<Promise<Void>, int64_t>>::iterator it = lock->takers.insert(lock->takers.end(), std::make_pair(Promise<Void>(), amount));
-
-		try {
-			wait( it->first.getFuture() );
-		} catch (Error& e) {
-			if (e.code() == error_code_actor_cancelled) {
-				lock->takers.erase(it);
-				lock->release(0);
-			}
-			throw;
-		}
-		try {
-			double duration = BUGGIFY_WITH_PROB(.001) ? deterministicRandom()->random01()*FLOW_KNOBS->BUGGIFY_FLOW_LOCK_RELEASE_DELAY : 0.0;
-			choose{ when(wait(delay(duration, taskID))) {}  // So release()ing the lock doesn't cause arbitrary code to run on the stack
-					when(wait(lock->broken_on_destruct.getFuture())) {} }
-			return Void();
-		} catch (...) {
-			TEST(true); // If we get cancelled here, we are holding the lock but the caller doesn't know, so release it
-			lock->release(amount);
-			throw;
-		}
-	}
-
-	ACTOR static Future<Void> takeMoreActor(FlowLock* lock, int64_t* amount) {
-		wait(lock->take());
-		int64_t extra = std::min( lock->available(), *amount-1 );
-		lock->active += extra;
-		*amount = 1 + extra;
-		return Void();
-	}
-
-	ACTOR static Future<Void> safeYieldActor(FlowLock* lock, TaskPriority taskID, int64_t amount) {
-		try {
-			choose{
-				when(wait(yield(taskID))) {}
-				when(wait(lock->broken_on_destruct.getFuture())) {}
-			}
-			return Void();
-		} catch (Error& e) {
-			lock->release(amount);
-			throw;
-		}
-	}
-
-	ACTOR static Future<Void> releaseWhenActor( FlowLock* self, Future<Void> signal, int64_t amount ) {
-		wait(signal);
-		self->release(amount);
-		return Void();
-	}
+	ACTOR Future<Void> takeActor(FlowLock* lock, TaskPriority taskID, int64_t amount);
+	ACTOR Future<Void> takeMoreActor(FlowLock* lock, int64_t* amount);
+	ACTOR Future<Void> safeYieldActor(FlowLock* lock, TaskPriority taskID, int64_t amount);
+	ACTOR Future<Void> releaseWhenActor(FlowLock* self, Future<Void> signal, int64_t amount);
 };
 
 struct NotifiedInt {
