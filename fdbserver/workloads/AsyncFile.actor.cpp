@@ -1,5 +1,5 @@
 /*
- * AsyncFile.cpp
+ * AsyncFile.actor.cpp
  *
  * This source file is part of the FoundationDB open source project
  *
@@ -80,7 +80,7 @@ Reference<AsyncFileBuffer> AsyncFileWorkload::allocateBuffer(size_t size)
 }
 
 ACTOR Future<Void> AsyncFileWorkload::openFile(AsyncFileWorkload* self, int64_t flags, int64_t mode, uint64_t size,
-                                               bool fillFile = false) {
+                                               bool fillFile) {
 	state RandomByteGenerator rbg;
 
 	if (self->fileHandle.getPtr() != NULL) {

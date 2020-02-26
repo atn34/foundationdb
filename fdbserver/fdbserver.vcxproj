@@ -98,7 +98,7 @@
     <ActorCompiler Include="workloads\ConflictRange.actor.cpp" />
     <ActorCompiler Include="workloads\ApiWorkload.actor.cpp" />
     <ActorCompiler Include="workloads\ApiCorrectness.actor.cpp" />
-    <ClCompile Include="workloads\AsyncFile.cpp" />
+    <ActorCompiler Include="workloads\AsyncFile.actor.cpp" />
     <ActorCompiler Include="workloads\AsyncFileCorrectness.actor.cpp" />
     <ActorCompiler Include="workloads\AsyncFileRead.actor.cpp" />
     <ActorCompiler Include="workloads\AsyncFileWrite.actor.cpp" />

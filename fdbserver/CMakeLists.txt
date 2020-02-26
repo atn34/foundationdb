@@ -104,7 +104,7 @@ set(FDBSERVER_SRCS
   workloads/ApiWorkload.actor.cpp
   workloads/ApiWorkload.h
   workloads/AsyncFile.actor.h
-  workloads/AsyncFile.cpp
+  workloads/AsyncFile.actor.cpp
   workloads/AsyncFileCorrectness.actor.cpp
   workloads/AsyncFileRead.actor.cpp
   workloads/AsyncFileWrite.actor.cpp

@@ -314,9 +314,9 @@
       <Filter>sqlite</Filter>
     </ClCompile>
     <ClCompile Include="VFSAsync.cpp" />
-    <ClCompile Include="workloads\AsyncFile.cpp">
+    <ActorCompiler Include="workloads\AsyncFile.actor.cpp">
       <Filter>workloads</Filter>
-    </ClCompile>
+    </ActorCompiler>
     <ClCompile Include="Knobs.cpp" />
     <ClCompile Include="workloads\MemoryKeyValueStore.cpp">
       <Filter>workloads</Filter>
