@@ -324,7 +324,7 @@ namespace actorcompiler
                     writer.Write(attribute + " ");
                 }
                 if (actor.isStatic) writer.Write("static ");
-                writer.WriteLine("{0} {3}{1}( {2} );", fullReturnType, actor.name, string.Join(", ", ParameterList()), actor.nameSpace==null ? "" : actor.nameSpace + "::");
+                writer.WriteLine("{0} {3}{1}( {2} );", fullReturnType, actor.name, string.Join(", ", ParameterList("const&")), actor.nameSpace==null ? "" : actor.nameSpace + "::");
                 if (actor.enclosingClass != null) {
                     writer.WriteLine("template <class> friend class {0};", stateClassName);
                 }
@@ -411,12 +411,15 @@ namespace actorcompiler
                 writer.Write(attribute + " ");
             }
             if (actor.isStatic) writer.Write("static ");
-            writer.WriteLine("{0} {3}{1}( {2} ) {{", fullReturnType, actor.name, string.Join(", ", ParameterList()), actor.nameSpace==null ? "" : actor.nameSpace + "::");
+            writer.WriteLine("{0} {3}{1}( {2} ) {{", fullReturnType, actor.name, string.Join(", ", ParameterList("const&", "_")), actor.nameSpace==null ? "" : actor.nameSpace + "::");
             LineNumber(writer, actor.SourceLine);
+            foreach (var param in actor.parameters) {
+                writer.WriteLine("\t{0} {1} {{ {2}_ }};", param.type, param.name, param.name);
+            }
 
             string newActor = string.Format("new {0}({1})", 
                     fullClassName,
-                    string.Join(", ", actor.parameters.Select(p => p.name).ToArray()));
+                    string.Join(", ", actor.parameters.Select(p => "std::move(" + p.name + ")").ToArray()));
 
             if (actor.returnType != null)
                 writer.WriteLine("\treturn Future<{1}>({0});", newActor, actor.returnType);
@@ -1145,15 +1148,15 @@ namespace actorcompiler
             functions.Add(f.name, f);
             return f;
         }
-        string[] ParameterList()
+        string[] ParameterList(String qualifier, String suffix = "")
         {
             return actor.parameters.Select(p =>
             {
                 // SOMEDAY: pass small built in types by value
                 if (p.initializer != "")
-                    return string.Format("{0} const& {1} = {2}", p.type, p.name, p.initializer);
+                    return string.Format("{0} {3} {1} = {2}", p.type, p.name + suffix, p.initializer, qualifier);
                 else
-                    return string.Format("{0} const& {1}", p.type, p.name);
+                    return string.Format("{0} {2} {1}", p.type, p.name + suffix, qualifier);
             }).ToArray();
         }
         void WriteCancelFunc(TextWriter writer)
@@ -1190,7 +1193,7 @@ namespace actorcompiler
             {
                 name = className,
                 returnType = "",
-                formalParameters = ParameterList(),
+                formalParameters = ParameterList(""),
                 endIsUnreachable = true,
                 publicName = true
             };
@@ -1212,7 +1215,7 @@ namespace actorcompiler
             {
                 name = stateClassName,
                 returnType = "",
-                formalParameters = ParameterList(),
+                formalParameters = ParameterList(""),
                 endIsUnreachable = true,
                 publicName = true
             };
@@ -1286,7 +1289,7 @@ namespace actorcompiler
         {
             state = actor.parameters
                 .Select( 
-                    p=>new StateVar { SourceLine = actor.SourceLine, name=p.name, type=p.type, initializer=p.name, initializerConstructorSyntax=false } )
+                    p=>new StateVar { SourceLine = actor.SourceLine, name=p.name, type=p.type, initializer= "std::move(" + p.name + ")", initializerConstructorSyntax=false } )
                 .ToList();
         }
 
