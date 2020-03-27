@@ -414,7 +414,7 @@ namespace actorcompiler
             writer.WriteLine("{0} {3}{1}( {2} ) {{", fullReturnType, actor.name, string.Join(", ", ParameterList("const&", "_")), actor.nameSpace==null ? "" : actor.nameSpace + "::");
             LineNumber(writer, actor.SourceLine);
             foreach (var param in actor.parameters) {
-                writer.WriteLine("\t{0} {1} {{ {2}_ }};", param.type, param.name, param.name);
+                writer.WriteLine("\t{0} {1} = {2}_;", param.type, param.name, param.name);
             }
 
             string newActor = string.Format("new {0}({1})", 
