@@ -295,7 +295,8 @@ public:
 
 		state Value val1 = StringRef((const uint8_t*)&intValue1, sizeof(intValue1));
 		state Value val2 = StringRef((const uint8_t*)&intValue2, sizeof(intValue2));
-		state std::function<Optional<uint64_t>(uint64_t, uint64_t)> opFunc = [keySet](uint64_t val1, uint64_t val2) {
+		state std::function<Optional<uint64_t>(uint64_t, uint64_t)> opFunc = [keySet = keySet](uint64_t val1,
+		                                                                                       uint64_t val2) {
 			if (!keySet || val1 == val2) {
 				return Optional<uint64_t>();
 			} else {
