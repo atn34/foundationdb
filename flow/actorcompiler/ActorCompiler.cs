@@ -1148,12 +1148,12 @@ namespace actorcompiler
             functions.Add(f.name, f);
             return f;
         }
-        string[] ParameterList(String qualifier, String suffix = "")
+        string[] ParameterList(String qualifier, String suffix = "", bool initializers = true)
         {
             return actor.parameters.Select(p =>
             {
                 // SOMEDAY: pass small built in types by value
-                if (p.initializer != "")
+                if (p.initializer != "" && initializers)
                     return string.Format("{0} {3} {1} = {2}", p.type, p.name + suffix, p.initializer, qualifier);
                 else
                     return string.Format("{0} {2} {1}", p.type, p.name + suffix, qualifier);
@@ -1193,13 +1193,13 @@ namespace actorcompiler
             {
                 name = className,
                 returnType = "",
-                formalParameters = ParameterList(""),
+                formalParameters = ParameterList("&&", "", /*initializers*/ false),
                 endIsUnreachable = true,
                 publicName = true
             };
             constructor.Indent(codeIndent);
             constructor.WriteLine( " : Actor<" + (actor.returnType == null ? "void" : actor.returnType) + ">()," );
-            constructor.WriteLine( "   {0}({1})", fullStateClassName, string.Join(", ", actor.parameters.Select(p => p.name)));
+            constructor.WriteLine( "   {0}({1})", fullStateClassName, string.Join(", ", actor.parameters.Select(p => "std::move(" + p.name + ")")));
             constructor.Indent(-1);
             constructor.WriteLine("{");
             constructor.Indent(+1);
@@ -1215,7 +1215,7 @@ namespace actorcompiler
             {
                 name = stateClassName,
                 returnType = "",
-                formalParameters = ParameterList(""),
+                formalParameters = ParameterList("&&", "", /*initializers*/ false),
                 endIsUnreachable = true,
                 publicName = true
             };
