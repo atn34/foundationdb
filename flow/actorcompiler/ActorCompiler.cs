@@ -1215,7 +1215,7 @@ namespace actorcompiler
             {
                 name = stateClassName,
                 returnType = "",
-                formalParameters = ParameterList("&&", "", /*initializers*/ false),
+                formalParameters = ParameterList("&&", "_", /*initializers*/ false),
                 endIsUnreachable = true,
                 publicName = true
             };
@@ -1289,7 +1289,7 @@ namespace actorcompiler
         {
             state = actor.parameters
                 .Select( 
-                    p=>new StateVar { SourceLine = actor.SourceLine, name=p.name, type=p.type, initializer= "std::move(" + p.name + ")", initializerConstructorSyntax=false } )
+                    p=>new StateVar { SourceLine = actor.SourceLine, name=p.name, type=p.type, initializer= "std::move(" + p.name + "_)", initializerConstructorSyntax=false } )
                 .ToList();
         }
 
