@@ -6,7 +6,7 @@ endif()
 
 # RPM specifics
 if(CPACK_GENERATOR MATCHES "RPM")
-  set(CPACK_PACKAGING_INSTALL_PREFIX "/")
+  set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
   if(GENERATE_EL6)
     message(STATUS "Building EL6 components")
     set(CPACK_COMPONENTS_ALL clients-el6 server-el6)

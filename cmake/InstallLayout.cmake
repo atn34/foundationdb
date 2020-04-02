@@ -40,10 +40,9 @@ function(install_symlink)
           COMPONENTS "${IN_COMPONENT}-tgz")
         install_symlink_impl(
           TO "../${rel_path}bin/${IN_FILE_NAME}"
-          DESTINATION "usr/lib64/${IN_LINK_NAME}"
+          DESTINATION "lib64/${IN_LINK_NAME}"
           COMPONENTS "${IN_COMPONENT}-el6"
-                     "${IN_COMPONENT}-el7"
-                     "${IN_COMPONENT}-deb")
+                     "${IN_COMPONENT}-el7")
         install_symlink_impl(
           TO "../${rel_path}bin/${IN_FILE_NAME}"
           DESTINATION "usr/lib64/${IN_LINK_NAME}"
@@ -55,10 +54,13 @@ function(install_symlink)
           COMPONENTS "${IN_COMPONENT}-tgz")
         install_symlink_impl(
           TO "../${rel_path}bin/${IN_FILE_NAME}"
-          DESTINATION "usr/bin/${IN_LINK_NAME}"
+          DESTINATION "bin/${IN_LINK_NAME}"
           COMPONENTS "${IN_COMPONENT}-el6"
-                     "${IN_COMPONENT}-el7"
-                     "${IN_COMPONENT}-deb")
+                     "${IN_COMPONENT}-el7")
+        install_symlink_impl(
+          TO "../${rel_path}bin/${IN_FILE_NAME}"
+          DESTINATION "usr/bin/${IN_LINK_NAME}"
+          COMPONENTS "${IN_COMPONENT}-deb")
       elseif("${IN_LINK_DIR}" MATCHES "fdbmonitor")
         install_symlink_impl(
           TO "../../${rel_path}bin/${IN_FILE_NAME}"
@@ -66,10 +68,13 @@ function(install_symlink)
           COMPONENTS "${IN_COMPONENT}-tgz")
         install_symlink_impl(
           TO "../../${rel_path}bin/${IN_FILE_NAME}"
-          DESTINATION "usr/lib/foundationdb/${IN_LINK_NAME}"
+          DESTINATION "lib/foundationdb/${IN_LINK_NAME}"
           COMPONENTS "${IN_COMPONENT}-el6"
-                     "${IN_COMPONENT}-el7"
-                     "${IN_COMPONENT}-deb")
+                     "${IN_COMPONENT}-el7")
+        install_symlink_impl(
+          TO "../../${rel_path}bin/${IN_FILE_NAME}"
+          DESTINATION "usr/lib/foundationdb/${IN_LINK_NAME}"
+          COMPONENTS "${IN_COMPONENT}-deb")
       else()
         message(FATAL_ERROR "Unknown LINK_DIR ${IN_LINK_DIR}")
       endif()
@@ -97,43 +102,43 @@ endfunction()
 # format vars like install_destination_for_${destination}_${package}
 set(install_destination_for_bin_tgz "bin")
 set(install_destination_for_bin_deb "usr/bin")
-set(install_destination_for_bin_el6 "usr/bin")
-set(install_destination_for_bin_el7 "usr/bin")
+set(install_destination_for_bin_el6 "bin")
+set(install_destination_for_bin_el7 "bin")
 set(install_destination_for_bin_pm "usr/local/bin")
 set(install_destination_for_sbin_tgz "sbin")
 set(install_destination_for_sbin_deb "usr/sbin")
-set(install_destination_for_sbin_el6 "usr/sbin")
-set(install_destination_for_sbin_el7 "usr/sbin")
+set(install_destination_for_sbin_el6 "sbin")
+set(install_destination_for_sbin_el7 "sbin")
 set(install_destination_for_sbin_pm "usr/local/libexec")
 set(install_destination_for_lib_tgz "lib")
 set(install_destination_for_lib_deb "usr/lib")
-set(install_destination_for_lib_el6 "usr/lib64")
-set(install_destination_for_lib_el7 "usr/lib64")
+set(install_destination_for_lib_el6 "lib64")
+set(install_destination_for_lib_el7 "lib64")
 set(install_destination_for_lib_pm "lib")
 set(install_destination_for_fdbmonitor_tgz "sbin")
 set(install_destination_for_fdbmonitor_deb "usr/lib/foundationdb")
-set(install_destination_for_fdbmonitor_el6 "usr/lib/foundationdb")
-set(install_destination_for_fdbmonitor_el7 "usr/lib/foundationdb")
+set(install_destination_for_fdbmonitor_el6 "lib/foundationdb")
+set(install_destination_for_fdbmonitor_el7 "lib/foundationdb")
 set(install_destination_for_fdbmonitor_pm "usr/local/libexec")
 set(install_destination_for_include_tgz "include")
 set(install_destination_for_include_deb "usr/include")
-set(install_destination_for_include_el6 "usr/include")
-set(install_destination_for_include_el7 "usr/include")
+set(install_destination_for_include_el6 "include")
+set(install_destination_for_include_el7 "include")
 set(install_destination_for_include_pm "usr/local/include")
 set(install_destination_for_etc_tgz "etc/foundationdb")
 set(install_destination_for_etc_deb "etc/foundationdb")
-set(install_destination_for_etc_el6 "etc/foundationdb")
-set(install_destination_for_etc_el7 "etc/foundationdb")
+set(install_destination_for_etc_el6 "/etc/foundationdb")
+set(install_destination_for_etc_el7 "/etc/foundationdb")
 set(install_destination_for_etc_pm "usr/local/etc/foundationdb")
 set(install_destination_for_log_tgz "log/foundationdb")
 set(install_destination_for_log_deb "var/log/foundationdb")
-set(install_destination_for_log_el6 "var/log/foundationdb")
-set(install_destination_for_log_el7 "var/log/foundationdb")
+set(install_destination_for_log_el6 "/var/log/foundationdb")
+set(install_destination_for_log_el7 "/var/log/foundationdb")
 set(install_destination_for_log_pm "")
 set(install_destination_for_data_tgz "lib/foundationdb")
 set(install_destination_for_data_deb "var/lib/foundationdb")
-set(install_destination_for_data_el6 "var/lib/foundationdb")
-set(install_destination_for_data_el7 "var/lib/foundationdb")
+set(install_destination_for_data_el6 "/var/lib/foundationdb")
+set(install_destination_for_data_el7 "/var/lib/foundationdb")
 set(install_destination_for_data_pm "")
 
 set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
