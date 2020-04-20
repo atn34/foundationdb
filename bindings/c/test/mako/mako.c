@@ -966,6 +966,7 @@ failExit:
 	fdb_cluster_destroy(cluster);
 #endif
 
+#if 0
 	/* stop the network thread */
 	fprintf(debugme, "DEBUG: fdb_stop_network\n");
 	err = fdb_stop_network();
@@ -977,6 +978,7 @@ failExit:
 	if (rc != 0) {
 		fprintf(stderr, "ERROR: network thread failed to join\n");
 	}
+#endif
 
 	return 0;
 }
